@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { UserPlus, X, Upload } from "lucide-react";
+import { UserPlus, X, Upload, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -338,9 +338,9 @@ export function TeamEditor({ teamId, onTeamUpdated }: TeamEditorProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveMember(member._id, "regular")}
-                    className="shrink-0 ml-2"
+                    className="shrink-0 ml-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash className="h-4 w-4" />
                   </Button>
                 </div>
               ))
@@ -365,9 +365,9 @@ export function TeamEditor({ teamId, onTeamUpdated }: TeamEditorProps) {
                     variant="ghost"
                     size="icon" 
                     onClick={() => handleRemoveMember(member._id, "substitute")}
-                    className="shrink-0 ml-2"
+                    className="shrink-0 ml-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash className="h-4 w-4" />
                   </Button>
                 </div>
               ))
