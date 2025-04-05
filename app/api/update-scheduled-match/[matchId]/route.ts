@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import dbConnect from "@/lib/dbConnect";
-import Match from "@/app/models/Match";
+import ScheduledMatch from "@/app/models/ScheduledMatch";
 
 export async function PUT(
   request: Request,
@@ -33,10 +33,11 @@ export async function PUT(
     const newEndDate = new Date(newScheduledDate.getTime() + 60 * 60 * 1000); // Add 1 hour for end date
 
     // Update the match
-    const updatedMatch = await Match.findByIdAndUpdate(
+    const updatedMatch = await ScheduledMatch.findByIdAndUpdate(
       params.matchId,
       {
         scheduledDate: newScheduledDate,
+        endDate: newEndDate,
         status: 'scheduled'
       },
       { new: true }
