@@ -160,3 +160,39 @@
   }
 }
 
+/* Fix for calendar in edit match modal */
+.edit-match-calendar .rdp-months {
+  justify-content: center;
+}
+
+.edit-match-calendar .rdp-month {
+  width: 100%;
+}
+
+.edit-match-calendar .rdp-table {
+  width: 100%;
+  display: table;
+  border-collapse: separate;
+}
+
+.edit-match-calendar .rdp-head_row,
+.edit-match-calendar .rdp-row {
+  display: table-row;
+}
+
+.edit-match-calendar .rdp-head_cell,
+.edit-match-calendar .rdp-cell {
+  display: table-cell;
+  text-align: center;
+  padding: 0;
+  height: 36px;
+  width: 36px;
+}
+
+.edit-match-calendar .rdp-button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
