@@ -15,6 +15,7 @@ import { useDrop } from "react-dnd";
 import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
+import { EditMatchModal } from "./edit-match-modal";
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -81,6 +82,11 @@ export function Calendar({
     match: null as any,
   });
 
+  const [editState, setEditState] = useState({
+    isOpen: false,
+    match: null as any,
+  });
+
   useEffect(() => {
     const fetchScheduledMatches = async () => {
       try {
@@ -88,7 +94,7 @@ export function Calendar({
         if (response.data.success) {
           const formattedMatches = response.data.data.map((match: any) => ({
             id: match._id,
-            title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
+            title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
             start: new Date(match.scheduledDate),
             end: new Date(match.endDate),
             round: match.round,
@@ -155,7 +161,23 @@ export function Calendar({
   };
 
   const handleEventClick = (event: MatchEvent) => {
-    if (!isEditing && event.status !== "completed") {
+    if (isEditing) {
+      // If in editing mode, open the edit modal for any match
+      const matchData = {
+        id: event.id,
+        homeTeam: event.homeTeam.name,
+        awayTeam: event.awayTeam.name,
+        start: event.start,
+        end: event.end,
+        status: event.status,
+        matchType: event.matchType
+      };
+
+      setEditState({
+        isOpen: true,
+        match: matchData,
+      });
+    } else if (event.status !== "completed") {
       if (event.matchType === 'quarterfinal' || 
           event.matchType === 'semifinal' || 
           event.matchType === 'final') {
@@ -326,6 +348,50 @@ export function Calendar({
         }}
         match={scoringState.match}
         onScoreSubmit={handleScoreSubmit}
+      />
+
+      <EditMatchModal
+        open={editState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditState({ isOpen: false, match: null });
+          }
+        }}
+        match={editState.match}
+        onMatchUpdated={() => {
+          // Refresh the scheduled matches after an update
+          const fetchScheduledMatches = async () => {
+            try {
+              const response = await axios.get("/api/get-all-scheduled-matches");
+              if (response.data.success) {
+                const formattedMatches = response.data.data.map((match: any) => ({
+                  id: match._id,
+                  title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
+                  start: new Date(match.scheduledDate),
+                  end: new Date(match.endDate),
+                  round: match.round,
+                  matchType: match.matchType,
+                  roundType: match.roundType,
+                  status: match.status,
+                  homeTeam: {
+                    id: match.homeTeamId._id,
+                    name: match.homeTeamId.teamName,
+                    photo: match.homeTeamId.teamPhoto,
+                  },
+                  awayTeam: {
+                    id: match.awayTeamId._id,
+                    name: match.awayTeamId.teamName,
+                    photo: match.awayTeamId.teamPhoto,
+                  },
+                }));
+                setScheduledMatches(formattedMatches);
+              }
+            } catch (error) {
+              console.error("Error fetching matches:", error);
+            }
+          };
+          fetchScheduledMatches();
+        }}
       />
     </>
   );
