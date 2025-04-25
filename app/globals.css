@@ -117,7 +117,9 @@
 }
 
 .calendar-dark .rbc-event {
-  @apply border-0 transition-colors duration-200 rounded-md overflow-hidden;
+  @apply border-0 transition-colors duration-200 rounded-md;
+  white-space: normal;
+  overflow: visible;
 }
 
 .calendar-dark .rbc-event.rbc-selected {

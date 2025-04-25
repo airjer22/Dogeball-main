@@ -94,7 +94,7 @@ export function Calendar({
         if (response.data.success) {
           const formattedMatches = response.data.data.map((match: any) => ({
             id: match._id,
-            title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
+            title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
             start: new Date(match.scheduledDate),
             end: new Date(match.endDate),
             round: match.round,
@@ -366,7 +366,7 @@ export function Calendar({
               if (response.data.success) {
                 const formattedMatches = response.data.data.map((match: any) => ({
                   id: match._id,
-                  title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
+                  title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
                   start: new Date(match.scheduledDate),
                   end: new Date(match.endDate),
                   round: match.round,
