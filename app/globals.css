@@ -118,8 +118,19 @@
 
 .calendar-dark .rbc-event {
   @apply border-0 transition-colors duration-200 rounded-md;
-  white-space: normal;
-  overflow: visible;
+  white-space: normal !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 40px;
+  padding: 4px !important;
+}
+
+.calendar-dark .rbc-event-content {
+  white-space: normal !important;
+  overflow: visible !important;
+  height: auto !important;
+  word-wrap: break-word !important;
+  line-height: 1.2 !important;
 }
 
 .calendar-dark .rbc-event.rbc-selected {
