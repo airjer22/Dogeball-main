@@ -7,8 +7,19 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -43,6 +54,8 @@ export function EditMatchModal({
     match ? new Date(match.start).getMinutes().toString().padStart(2, "0") : "00"
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleUpdate = async () => {
     if (!match || !selectedDate) return;
@@ -87,11 +100,46 @@ export function EditMatchModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (!match) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/delete-scheduled-match/${match.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Match has been deleted",
+        });
+        onMatchUpdated();
+        onOpenChange(false);
+      } else {
+        throw new Error(data.message || "Failed to delete match");
+      }
+    } catch (error) {
+      console.error("Error deleting match:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete match",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   if (!match) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-900 border-white/10 text-white sm:max-w-[500px]">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="bg-gray-900 border-white/10 text-white sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Match Schedule</DialogTitle>
         </DialogHeader>
@@ -171,24 +219,60 @@ export function EditMatchModal({
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
+          <DialogFooter className="flex justify-between w-full">
             <Button
-              onClick={() => onOpenChange(false)}
-              className="bg-gray-800 text-white hover:bg-gray-700"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="bg-red-600 hover:bg-red-700 text-white"
               disabled={isSubmitting}
             >
-              Cancel
+              Delete Match
             </Button>
-            <Button
-              onClick={handleUpdate}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={!selectedDate || isSubmitting}
-            >
-              {isSubmitting ? "Updating..." : "Update Schedule"}
-            </Button>
-          </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="bg-gray-800 text-white hover:bg-gray-700"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdate}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!selectedDate || isSubmitting}
+              >
+                {isSubmitting ? "Updating..." : "Update Schedule"}
+              </Button>
+            </div>
+          </DialogFooter>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Match</AlertDialogTitle>
+          <AlertDialogDescription className="text-gray-400">
+            Are you sure you want to delete this match? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel 
+            className="bg-gray-800 text-white hover:bg-gray-700"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
