@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
+import { format } from "date-fns";
 import { Calendar } from "@/components/calendar/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -279,7 +280,7 @@ export default function CalendarPage() {
             id: match._id,
             start: new Date(match.scheduledDate),
             end: new Date(match.endDate),
-            title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
+            title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
               match.matchType ? ` (${match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)})` : ''
             }`,
             round: match.round,
@@ -376,7 +377,7 @@ export default function CalendarPage() {
           id: match._id,
           start: new Date(match.scheduledDate),
           end: new Date(match.endDate),
-          title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
+          title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
             match.matchType ? ` (${match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)})` : ''
           }`,
           round: match.round,
