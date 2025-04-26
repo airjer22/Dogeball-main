@@ -395,7 +395,7 @@ export default function CalendarPage() {
     try {
       const matchType = getMatchType(match.roundType);
 
-      const response = await axios.post<{ success: boolean }>('/api/schedule-match', {
+      const response = await axios.post<{ success: boolean; data: any }>('/api/schedule-match', {
         matchId: match._id,
         homeTeamId: match.homeTeamId,
         awayTeamId: match.awayTeamId,
@@ -407,8 +407,43 @@ export default function CalendarPage() {
       });
 
       if (response.data.success) {
-        // Refresh both scheduled and unscheduled matches
-        refreshMatches();
+        // Immediately update the UI with the new scheduled match
+        const scheduledMatch: ScheduledMatch = {
+          id: match._id,
+          start: date,
+          end: new Date(date.getTime() + 60 * 60 * 1000),
+          title: `${match.homeTeam} vs ${match.awayTeam}${
+            match.roundType !== 'regular' ? ` (${getRoundLabel(match.roundType, match.round)})` : ''
+          }`,
+          round: match.round,
+          matchType: getMatchType(match.roundType),
+          roundType: match.roundType,
+          status: 'scheduled',
+          homeTeam: {
+            id: match.homeTeamId,
+            name: match.homeTeam,
+            photo: undefined
+          },
+          awayTeam: {
+            id: match.awayTeamId,
+            name: match.awayTeam,
+            photo: undefined
+          },
+          isScored: false
+        };
+
+        // Update the scheduled matches state immediately
+        setScheduledMatches(prev => [...prev, scheduledMatch]);
+        
+        // Update the round groups to remove the scheduled match
+        setRoundGroups(prevGroups => 
+          prevGroups.map(group => ({
+            ...group,
+            matches: group.matches.filter(m => m._id !== match._id)
+          })).filter(group => group.matches.length > 0)
+        );
+
+        // Don't call refreshMatches() here as it might override our immediate state updates
 
         toast({
           title: "Success",

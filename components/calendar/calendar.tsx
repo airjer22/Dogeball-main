@@ -89,40 +89,10 @@ export function Calendar({
     match: null as any,
   });
 
+  // Update scheduledMatches when events prop changes
   useEffect(() => {
-    const fetchScheduledMatches = async () => {
-      try {
-        const response = await axios.get("/api/get-all-scheduled-matches");
-        if (response.data.success) {
-          const formattedMatches = response.data.data.map((match: any) => ({
-            id: match._id,
-            title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
-            start: new Date(match.scheduledDate),
-            end: new Date(match.endDate),
-            round: match.round,
-            matchType: match.matchType,
-            roundType: match.roundType,
-            status: match.status,
-            homeTeam: {
-              id: match.homeTeamId._id,
-              name: match.homeTeamId.teamName,
-              photo: match.homeTeamId.teamPhoto,
-            },
-            awayTeam: {
-              id: match.awayTeamId._id,
-              name: match.awayTeamId.teamName,
-              photo: match.awayTeamId.teamPhoto,
-            },
-          }));
-          setScheduledMatches(formattedMatches);
-        }
-      } catch (error) {
-        console.error("Error fetching matches:", error);
-      }
-    };
-
-    fetchScheduledMatches();
-  }, []);
+    setScheduledMatches([]);  // Clear internal state to avoid duplicates
+  }, [events]);
 
   const handleScoreSubmit = async (scores: {
     homeScore: number;
@@ -302,7 +272,7 @@ export function Calendar({
         
         <BigCalendar
           localizer={localizer}
-          events={[...events, ...scheduledMatches]}
+          events={events}  // Use only the events from props
           startAccessor="start"
           endAccessor="end"
           style={{ height: "100%" }}
