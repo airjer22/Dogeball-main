@@ -393,25 +393,31 @@ export default function CalendarPage() {
 
   const handleMatchScheduled = async (match: Match, date: Date) => {
     try {
+      console.log("Scheduling match:", match, "at date:", date);
       const matchType = getMatchType(match.roundType);
 
       const response = await axios.post<{ success: boolean; data: any }>('/api/schedule-match', {
         matchId: match._id,
         homeTeamId: match.homeTeamId,
         awayTeamId: match.awayTeamId,
-        scheduledDate: date,
+        scheduledDate: date.toISOString(),  // Ensure date is properly formatted
         tournamentId: match.tournamentId,
         round: match.round,
         roundType: match.roundType,
         matchType: matchType
       });
 
+      console.log("Schedule match response:", response.data);
+
       if (response.data.success) {
-        // Immediately update the UI with the new scheduled match
+        // Get the data from the response
+        const scheduledMatchData = response.data.data;
+        
+        // Create a formatted match object for the calendar
         const scheduledMatch: ScheduledMatch = {
-          id: match._id,
-          start: date,
-          end: new Date(date.getTime() + 60 * 60 * 1000),
+          id: scheduledMatchData._id || match._id,  // Use the ID from the response if available
+          start: new Date(scheduledMatchData.scheduledDate || date),
+          end: new Date(scheduledMatchData.endDate || new Date(date.getTime() + 60 * 60 * 1000)),
           title: `${match.homeTeam} vs ${match.awayTeam}${
             match.roundType !== 'regular' ? ` (${getRoundLabel(match.roundType, match.round)})` : ''
           }`,
@@ -432,6 +438,8 @@ export default function CalendarPage() {
           isScored: false
         };
 
+        console.log("Adding scheduled match to calendar:", scheduledMatch);
+
         // Update the scheduled matches state immediately
         setScheduledMatches(prev => [...prev, scheduledMatch]);
         
@@ -443,12 +451,12 @@ export default function CalendarPage() {
           })).filter(group => group.matches.length > 0)
         );
 
-        // Don't call refreshMatches() here as it might override our immediate state updates
-
         toast({
           title: "Success",
           description: "Match scheduled successfully"
         });
+      } else {
+        throw new Error(response.data.message || "Failed to schedule match");
       }
     } catch (err) {
       console.error('Error scheduling match:', err);
