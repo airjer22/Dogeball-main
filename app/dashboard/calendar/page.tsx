@@ -396,7 +396,7 @@ export default function CalendarPage() {
       console.log("Scheduling match:", match, "at date:", date);
       const matchType = getMatchType(match.roundType);
 
-      const response = await axios.post<{ success: boolean; data: any }>('/api/schedule-match', {
+      const response = await axios.post<{ success: boolean; data?: any; message?: string }>('/api/schedule-match', {
         matchId: match._id,
         homeTeamId: match.homeTeamId,
         awayTeamId: match.awayTeamId,
@@ -456,7 +456,9 @@ export default function CalendarPage() {
           description: "Match scheduled successfully"
         });
       } else {
-        throw new Error(response.data.message || "Failed to schedule match");
+        // Handle the case where success is false
+        const errorMessage = response.data.message || "Failed to schedule match";
+        throw new Error(errorMessage);
       }
     } catch (err) {
       console.error('Error scheduling match:', err);
