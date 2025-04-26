@@ -443,8 +443,7 @@ export default function CalendarPage() {
           })).filter(group => group.matches.length > 0)
         );
 
-        // Also refresh all matches to ensure everything is in sync
-        refreshMatches();
+        // Don't call refreshMatches() here as it might override our immediate state updates
 
         toast({
           title: "Success",
