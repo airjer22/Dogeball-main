@@ -60,12 +60,14 @@ interface CalendarProps {
   events: MatchEvent[];
   isEditing: boolean;
   onMatchScheduled: (match: any, date: Date) => void;
+  onMatchUpdated?: () => void;
 }
 
 export function Calendar({
   events,
   isEditing,
   onMatchScheduled,
+  onMatchUpdated,
 }: CalendarProps) {
   const { toast } = useToast();
   const calendarRef = useRef<HTMLDivElement | null>(null);
@@ -167,6 +169,8 @@ export function Calendar({
         id: event.id,
         homeTeam: event.homeTeam.name,
         awayTeam: event.awayTeam.name,
+        homeTeamId: event.homeTeam.id,
+        awayTeamId: event.awayTeam.id,
         start: event.start,
         end: event.end,
         status: event.status,
@@ -385,6 +389,11 @@ export function Calendar({
                   },
                 }));
                 setScheduledMatches(formattedMatches);
+                
+                // Call the parent's onMatchUpdated callback if provided
+                if (onMatchUpdated) {
+                  onMatchUpdated();
+                }
               }
             } catch (error) {
               console.error("Error fetching matches:", error);
