@@ -89,10 +89,12 @@ export function Calendar({
     match: null as any,
   });
 
-  // Update scheduledMatches when events prop changes
+  // We don't need to fetch scheduled matches anymore as they're passed via props
+  // But we'll keep the state for internal use
   useEffect(() => {
-    setScheduledMatches([]);  // Clear internal state to avoid duplicates
-  }, [events]);
+    // Initialize scheduledMatches with an empty array
+    setScheduledMatches([]);
+  }, []);
 
   const handleScoreSubmit = async (scores: {
     homeScore: number;

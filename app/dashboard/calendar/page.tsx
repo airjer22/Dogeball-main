@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios, { AxiosError } from "axios";
+import { format } from "date-fns";
 import { Calendar } from "@/components/calendar/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -219,16 +220,111 @@ export default function CalendarPage() {
 
         setHasTournaments(true);
 
+        // Fetch unscheduled matches
         const matchesResponse = await axios.get("/api/get-match");
         
-        if (!matchesResponse.data || 
-            matchesResponse.data.message === "No matches found." || 
-            matchesResponse.data.message === "All matches are scheduled.") {
+        // Process unscheduled matches
+        if (matchesResponse.data && 
+            matchesResponse.data.message !== "No unscheduled matches found." && 
+            matchesResponse.data.message !== "All matches are scheduled.") {
+          
+          const matches = matchesResponse.data as Match[];
+          
+          const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
+            const key = `${match.round}-${match.roundType}`;
+            if (!groups[key]) {
+              groups[key] = {
+                roundNumber: match.round,
+                roundType: match.roundType || "regular",
+                matches: [],
+                isExpanded: true
+              };
+            }
+            if (match.status === 'unscheduled') {
+              groups[key].matches.push(match);
+            }
+            return groups;
+          }, {});
+
+          const sortedGroups = Object.values(groupedMatches)
+            .sort((a, b) => {
+              if (a.roundType === "regular" && b.roundType !== "regular") return -1;
+              if (a.roundType !== "regular" && b.roundType === "regular") return 1;
+              
+              const typePriority = {
+                regular: 0,
+                quarterFinal: 1,
+                semiFinal: 2,
+                final: 3
+              };
+              
+              if (a.roundType !== b.roundType) {
+                return typePriority[a.roundType] - typePriority[b.roundType];
+              }
+              
+              return a.roundNumber - b.roundNumber;
+            });
+
+          setRoundGroups(sortedGroups);
+        } else {
           setRoundGroups([]);
-          setScheduledMatches([]);
-          return;
         }
 
+        // Fetch scheduled matches
+        const scheduledMatchesResponse = await axios.get("/api/get-all-scheduled-matches");
+        
+        if (scheduledMatchesResponse.data && scheduledMatchesResponse.data.success) {
+          const scheduledMatchesData = scheduledMatchesResponse.data.data;
+          
+          const scheduled = scheduledMatchesData.map((match: any) => ({
+            id: match._id,
+            start: new Date(match.scheduledDate),
+            end: new Date(match.endDate),
+            title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
+              match.matchType ? ` (${match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)})` : ''
+            }`,
+            round: match.round,
+            matchType: match.matchType,
+            roundType: match.roundType,
+            status: match.status as 'scheduled' | 'in_progress' | 'completed',
+            homeTeam: {
+              id: match.homeTeamId._id,
+              name: match.homeTeamId.teamName,
+              photo: match.homeTeamId.teamPhoto
+            },
+            awayTeam: {
+              id: match.awayTeamId._id,
+              name: match.awayTeamId.teamName,
+              photo: match.awayTeamId.teamPhoto
+            },
+            isScored: match.status === 'completed'
+          }));
+
+          setScheduledMatches(scheduled);
+        } else {
+          setScheduledMatches([]);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkTournamentsAndFetchMatches();
+  }, [toast]);
+
+  // Function to refresh both scheduled and unscheduled matches
+  const refreshMatches = async () => {
+    try {
+      // Fetch unscheduled matches
+      const matchesResponse = await axios.get("/api/get-match");
+      
+      // Process unscheduled matches
+      if (matchesResponse.data && 
+          matchesResponse.data.message !== "No unscheduled matches found." && 
+          matchesResponse.data.message !== "All matches are scheduled.") {
+        
         const matches = matchesResponse.data as Match[];
         
         const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
@@ -267,125 +363,44 @@ export default function CalendarPage() {
           });
 
         setRoundGroups(sortedGroups);
-
-        const scheduled = matches
-          .filter(match => match.status === 'scheduled' && match.scheduledDate)
-          .map(match => ({
-            id: match._id,
-            start: new Date(match.scheduledDate!),
-            end: new Date(new Date(match.scheduledDate!).getTime() + 60 * 60 * 1000),
-            title: `${match.homeTeam} vs ${match.awayTeam}${
-              match.roundType !== 'regular' ? ` (${getRoundLabel(match.roundType, match.round)})` : ''
-            }`,
-            round: match.round,
-            matchType: getMatchType(match.roundType),
-            roundType: match.roundType,
-            status: 'scheduled' as const,
-            homeTeam: {
-              id: match.homeTeamId,
-              name: match.homeTeam,
-              photo: undefined
-            },
-            awayTeam: {
-              id: match.awayTeamId,
-              name: match.awayTeam,
-              photo: undefined
-            },
-            isScored: Boolean(match.scores)
-          }));
-
-        setScheduledMatches(scheduled);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkTournamentsAndFetchMatches();
-  }, [toast]);
-
-  // Function to refresh both scheduled and unscheduled matches
-  const refreshMatches = async () => {
-    try {
-      const matchesResponse = await axios.get("/api/get-match");
-      
-      if (!matchesResponse.data || 
-          matchesResponse.data.message === "No matches found." || 
-          matchesResponse.data.message === "All matches are scheduled.") {
+      } else {
         setRoundGroups([]);
-        setScheduledMatches([]);
-        return;
       }
 
-      const matches = matchesResponse.data as Match[];
+      // Fetch scheduled matches
+      const scheduledMatchesResponse = await axios.get("/api/get-all-scheduled-matches");
       
-      // Process unscheduled matches
-      const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
-        const key = `${match.round}-${match.roundType}`;
-        if (!groups[key]) {
-          groups[key] = {
-            roundNumber: match.round,
-            roundType: match.roundType || "regular",
-            matches: [],
-            isExpanded: true
-          };
-        }
-        if (match.status === 'unscheduled') {
-          groups[key].matches.push(match);
-        }
-        return groups;
-      }, {});
-
-      const sortedGroups = Object.values(groupedMatches)
-        .sort((a, b) => {
-          if (a.roundType === "regular" && b.roundType !== "regular") return -1;
-          if (a.roundType !== "regular" && b.roundType === "regular") return 1;
-          
-          const typePriority = {
-            regular: 0,
-            quarterFinal: 1,
-            semiFinal: 2,
-            final: 3
-          };
-          
-          if (a.roundType !== b.roundType) {
-            return typePriority[a.roundType] - typePriority[b.roundType];
-          }
-          
-          return a.roundNumber - b.roundNumber;
-        });
-
-      setRoundGroups(sortedGroups);
-
-      // Process scheduled matches
-      const scheduled = matches
-        .filter(match => match.status === 'scheduled' && match.scheduledDate)
-        .map(match => ({
+      if (scheduledMatchesResponse.data && scheduledMatchesResponse.data.success) {
+        const scheduledMatchesData = scheduledMatchesResponse.data.data;
+        
+        const scheduled = scheduledMatchesData.map((match: any) => ({
           id: match._id,
-          start: new Date(match.scheduledDate!),
-          end: new Date(new Date(match.scheduledDate!).getTime() + 60 * 60 * 1000),
-          title: `${match.homeTeam} vs ${match.awayTeam}${
-            match.roundType !== 'regular' ? ` (${getRoundLabel(match.roundType, match.round)})` : ''
+          start: new Date(match.scheduledDate),
+          end: new Date(match.endDate),
+          title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}${
+            match.matchType ? ` (${match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)})` : ''
           }`,
           round: match.round,
-          matchType: getMatchType(match.roundType),
+          matchType: match.matchType,
           roundType: match.roundType,
-          status: 'scheduled' as const,
+          status: match.status as 'scheduled' | 'in_progress' | 'completed',
           homeTeam: {
-            id: match.homeTeamId,
-            name: match.homeTeam,
-            photo: undefined
+            id: match.homeTeamId._id,
+            name: match.homeTeamId.teamName,
+            photo: match.homeTeamId.teamPhoto
           },
           awayTeam: {
-            id: match.awayTeamId,
-            name: match.awayTeam,
-            photo: undefined
+            id: match.awayTeamId._id,
+            name: match.awayTeamId.teamName,
+            photo: match.awayTeamId.teamPhoto
           },
-          isScored: Boolean(match.scores)
+          isScored: match.status === 'completed'
         }));
 
-      setScheduledMatches(scheduled);
+        setScheduledMatches(scheduled);
+      } else {
+        setScheduledMatches([]);
+      }
     } catch (error) {
       console.error('Error refreshing matches:', error);
     }
@@ -393,62 +408,35 @@ export default function CalendarPage() {
 
   const handleMatchScheduled = async (match: Match, date: Date) => {
     try {
+      console.log("Scheduling match:", match, "at date:", date);
       const matchType = getMatchType(match.roundType);
 
-      const response = await axios.post<{ success: boolean; data: any }>('/api/schedule-match', {
+      const response = await axios.post<{ success: boolean; data?: any; message?: string }>('/api/schedule-match', {
         matchId: match._id,
         homeTeamId: match.homeTeamId,
         awayTeamId: match.awayTeamId,
-        scheduledDate: date,
+        scheduledDate: date.toISOString(),  // Ensure date is properly formatted
         tournamentId: match.tournamentId,
         round: match.round,
         roundType: match.roundType,
         matchType: matchType
       });
 
+      console.log("Schedule match response:", response.data);
+
       if (response.data.success) {
-        // Immediately update the UI with the new scheduled match
-        const scheduledMatch: ScheduledMatch = {
-          id: match._id,
-          start: date,
-          end: new Date(date.getTime() + 60 * 60 * 1000),
-          title: `${match.homeTeam} vs ${match.awayTeam}${
-            match.roundType !== 'regular' ? ` (${getRoundLabel(match.roundType, match.round)})` : ''
-          }`,
-          round: match.round,
-          matchType: getMatchType(match.roundType),
-          roundType: match.roundType,
-          status: 'scheduled',
-          homeTeam: {
-            id: match.homeTeamId,
-            name: match.homeTeam,
-            photo: undefined
-          },
-          awayTeam: {
-            id: match.awayTeamId,
-            name: match.awayTeam,
-            photo: undefined
-          },
-          isScored: false
-        };
-
-        // Update the scheduled matches state immediately
-        setScheduledMatches(prev => [...prev, scheduledMatch]);
+        // Instead of manually updating the state, refresh all matches
+        // This ensures we have the most up-to-date data from the server
+        await refreshMatches();
         
-        // Update the round groups to remove the scheduled match
-        setRoundGroups(prevGroups => 
-          prevGroups.map(group => ({
-            ...group,
-            matches: group.matches.filter(m => m._id !== match._id)
-          })).filter(group => group.matches.length > 0)
-        );
-
-        // Don't call refreshMatches() here as it might override our immediate state updates
-
         toast({
           title: "Success",
           description: "Match scheduled successfully"
         });
+      } else {
+        // Handle the case where success is false
+        const errorMessage = response.data.message || "Failed to schedule match";
+        throw new Error(errorMessage);
       }
     } catch (err) {
       console.error('Error scheduling match:', err);
