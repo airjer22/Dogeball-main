@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import dbConnect from "@/lib/dbConnect";
 import ScheduledMatch from "@/app/models/ScheduledMatch";
+import Match from "@/app/models/Match";
 
 export async function DELETE(
   request: Request,
@@ -10,10 +11,10 @@ export async function DELETE(
   await dbConnect();
 
   try {
-    // Find and delete the match
-    const deletedMatch = await ScheduledMatch.findByIdAndDelete(params.matchId);
+    // Find the scheduled match
+    const scheduledMatch = await ScheduledMatch.findById(params.matchId);
 
-    if (!deletedMatch) {
+    if (!scheduledMatch) {
       return Response.json(
         {
           success: false,
@@ -29,10 +30,27 @@ export async function DELETE(
       );
     }
 
+    // Find the original match by homeTeamId, awayTeamId, and tournamentId
+    const originalMatch = await Match.findOne({
+      homeTeamId: scheduledMatch.homeTeamId,
+      awayTeamId: scheduledMatch.awayTeamId,
+      tournamentId: scheduledMatch.tournamentId,
+      round: scheduledMatch.round
+    });
+
+    // If we found the original match, update its status back to unscheduled
+    if (originalMatch) {
+      originalMatch.status = 'unscheduled';
+      await originalMatch.save();
+    }
+
+    // Delete the scheduled match
+    await ScheduledMatch.findByIdAndDelete(params.matchId);
+
     return Response.json(
       {
         success: true,
-        message: "Match deleted successfully"
+        message: "Match deleted successfully and returned to unscheduled matches"
       },
       {
         status: 200,

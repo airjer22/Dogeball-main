@@ -114,7 +114,7 @@ export function EditMatchModal({
       if (data.success) {
         toast({
           title: "Success",
-          description: "Match has been deleted",
+          description: "Match has been deleted and returned to unscheduled matches",
         });
         onMatchUpdated();
         onOpenChange(false);
