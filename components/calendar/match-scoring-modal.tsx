@@ -210,12 +210,31 @@ export function MatchScoringModal({
         
         {/* Timer Section */}
         <div className="mb-6">
+          <style jsx global>{`
+            @keyframes sizePulse {
+              0% {
+                transform: scale(1);
+              }
+              50% {
+                transform: scale(1.1);
+              }
+              100% {
+                transform: scale(1);
+              }
+            }
+            .size-pulse {
+              animation: sizePulse 1s infinite;
+            }
+          `}</style>
           <div 
             className={`text-center text-7xl font-bold mb-2 ${
               isLastMinute ? 'text-red-500' : 'text-white'
             } ${
-              isLastTenSeconds ? 'animate-pulse' : ''
+              isLastTenSeconds ? 'animate-pulse size-pulse' : ''
             }`}
+            style={{
+              transition: 'transform 0.3s ease',
+            }}
           >
             {formatTime(timeLeft)}
           </div>
