@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
 import { EditMatchModal } from "./edit-match-modal";
-import { MatchDetailsModal } from "./match-details-modal";
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -90,10 +89,6 @@ export function Calendar({
     match: null as any,
   });
 
-  const [detailsState, setDetailsState] = useState({
-    isOpen: false,
-    match: null as MatchEvent | null,
-  });
 
   // We don't need to fetch scheduled matches anymore as they're passed via props
   // But we'll keep the state for internal use
@@ -159,42 +154,34 @@ export function Calendar({
         isOpen: true,
         match: matchData,
       });
-    } else {
-      // First, show the match details modal for any match
-      setDetailsState({
-        isOpen: true,
-        match: event,
-      });
-      
-      // If the match is not completed and not a special match type, also allow scoring
-      if (event.status !== "completed") {
-        if (event.matchType === 'quarterfinal' || 
-            event.matchType === 'semifinal' || 
-            event.matchType === 'final') {
-          toast({
-            title: "Score Update Restricted",
-            description: "Please update the score in the tournament bracket section",
-            variant: 'destructive'
-          });
-          return;
-        }
-
-        const matchData = {
-          id: event.id,
-          homeTeam: event.homeTeam.name,
-          awayTeam: event.awayTeam.name,
-          homeTeamPhoto: event.homeTeam.photo,
-          awayTeamPhoto: event.awayTeam.photo,
-          start: event.start,
-          status: event.status,
-          matchType: event.matchType
-        };
-
-        setScoringState({
-          isOpen: true,
-          match: matchData,
+    } else if (event.status !== "completed") {
+      // If the match is not completed and not a special match type, allow scoring
+      if (event.matchType === 'quarterfinal' || 
+          event.matchType === 'semifinal' || 
+          event.matchType === 'final') {
+        toast({
+          title: "Score Update Restricted",
+          description: "Please update the score in the tournament bracket section",
+          variant: 'destructive'
         });
+        return;
       }
+
+      const matchData = {
+        id: event.id,
+        homeTeam: event.homeTeam.name,
+        awayTeam: event.awayTeam.name,
+        homeTeamPhoto: event.homeTeam.photo,
+        awayTeamPhoto: event.awayTeam.photo,
+        start: event.start,
+        status: event.status,
+        matchType: event.matchType
+      };
+
+      setScoringState({
+        isOpen: true,
+        match: matchData,
+      });
     }
   };
 
@@ -470,21 +457,6 @@ export function Calendar({
           };
           fetchScheduledMatches();
         }}
-      />
-
-      <MatchDetailsModal
-        open={detailsState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDetailsState({ isOpen: false, match: null });
-          }
-        }}
-        matchId={detailsState.match?.id || null}
-        matchDate={detailsState.match?.start || null}
-        homeTeam={detailsState.match?.homeTeam || null}
-        awayTeam={detailsState.match?.awayTeam || null}
-        status={detailsState.match?.status || "scheduled"}
-        isScored={detailsState.match?.status === "completed"}
       />
     </>
   );
