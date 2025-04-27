@@ -69,7 +69,7 @@ export function TournamentCalendar() {
             )
             .map((match: ScheduledMatch) => ({
               id: match._id,
-              title: `${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
+              title: `${format(new Date(match.scheduledDate), 'h:mm a')} - ${match.homeTeamId.teamName} vs ${match.awayTeamId.teamName}`,
               start: new Date(match.scheduledDate),
               end: match.endDate ? new Date(match.endDate) : new Date(new Date(match.scheduledDate).getTime() + 60 * 60 * 1000),
               isCompleted: match.status === 'completed',
