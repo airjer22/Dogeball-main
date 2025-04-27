@@ -139,7 +139,7 @@ export function MatchDetailsModal({
 
       {/* Enlarged Logo Modal */}
       {enlargedLogo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setEnlargedLogo(null)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80" onClick={() => setEnlargedLogo(null)}>
           <div className="relative max-w-3xl w-full mx-4">
             <button 
               className="absolute -top-10 right-0 p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700"
