@@ -89,6 +89,7 @@ export function Calendar({
     match: null as any,
   });
 
+
   // We don't need to fetch scheduled matches anymore as they're passed via props
   // But we'll keep the state for internal use
   useEffect(() => {
@@ -154,6 +155,7 @@ export function Calendar({
         match: matchData,
       });
     } else if (event.status !== "completed") {
+      // If the match is not completed and not a special match type, allow scoring
       if (event.matchType === 'quarterfinal' || 
           event.matchType === 'semifinal' || 
           event.matchType === 'final') {
@@ -271,6 +273,82 @@ export function Calendar({
           isOver && "ring-2 ring-blue-500/50"
         )}
       >
+        <style jsx global>{`
+          /* Fixed height for month rows and contained events */
+          .calendar-dark .rbc-month-view {
+            height: 100%;
+          }
+          .calendar-dark .rbc-month-row {
+            min-height: 120px;
+            max-height: 120px;
+            overflow: hidden;
+          }
+          .calendar-dark .rbc-row-content {
+            max-height: 100%;
+            overflow: hidden;
+          }
+          .calendar-dark .rbc-event {
+            position: relative;
+            cursor: pointer;
+            margin-bottom: 1px;
+          }
+          
+          /* Prevent events from overflowing */
+          .calendar-dark .rbc-event-content {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          
+          /* Custom scrollable container for each day */
+          .calendar-dark .rbc-day-bg {
+            position: relative;
+          }
+          
+          /* Add a custom class to day cells */
+          .calendar-dark .rbc-day-bg::after {
+            content: "";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+          }
+          
+          /* Style for the "more" indicator */
+          .calendar-dark .rbc-show-more {
+            background-color: transparent;
+            color: #3b82f6;
+            font-weight: bold;
+            padding: 2px 5px;
+            text-align: center;
+            cursor: pointer;
+          }
+          
+          /* Limit the number of visible events */
+          .calendar-dark .rbc-month-view .rbc-month-row {
+            overflow: hidden;
+          }
+          
+          /* Make sure events don't overflow */
+          .calendar-dark .rbc-event {
+            overflow: hidden;
+            max-height: 22px;
+          }
+          
+          /* Ensure the day cells have proper sizing */
+          .calendar-dark .rbc-date-cell {
+            padding-right: 5px;
+            text-align: right;
+          }
+          
+          /* Improve the appearance of the calendar */
+          .calendar-dark .rbc-today {
+            background-color: rgba(59, 130, 246, 0.1);
+          }
+        `}</style>
         
         <BigCalendar
           localizer={localizer}
@@ -286,6 +364,7 @@ export function Calendar({
           className="calendar-dark"
           tooltipAccessor={(event: MatchEvent) => event.title}
           onSelectEvent={handleEventClick}
+          popup={true}
           components={{
             dateCellWrapper: (props: any) => {
               const { children, value } = props;
@@ -293,6 +372,11 @@ export function Calendar({
                 "data-date": value.toISOString(),
               });
             },
+            event: (props: any) => (
+              <div title={props.event.title}>
+                <div className="text-xs">{props.event.title}</div>
+              </div>
+            ),
           }}
           eventPropGetter={(event: MatchEvent) => {
             const statusClass = event.status.toLowerCase();
