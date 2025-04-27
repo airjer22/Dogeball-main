@@ -6,6 +6,7 @@ import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { MatchDetailsModal } from "./match-details-modal";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 const locales = {
@@ -53,6 +54,14 @@ export function TournamentCalendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [date, setDate] = useState(new Date());
+  const [selectedMatch, setSelectedMatch] = useState<{
+    id: string;
+    date: Date;
+    homeTeam: { name: string; photo?: { url: string | null } };
+    awayTeam: { name: string; photo?: { url: string | null } };
+    isCompleted: boolean;
+  } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -101,6 +110,17 @@ export function TournamentCalendar() {
       </Card>
     );
   }
+
+  const handleSelectEvent = (event: CalendarEvent) => {
+    setSelectedMatch({
+      id: event.id,
+      date: event.start,
+      homeTeam: { name: event.homeTeam },
+      awayTeam: { name: event.awayTeam },
+      isCompleted: event.isCompleted
+    });
+    setIsModalOpen(true);
+  };
 
   return (
     <Card className="bg-white/10 border-white/10">
@@ -162,6 +182,69 @@ export function TournamentCalendar() {
               border-radius: 4px;
               padding: 2px 4px;
             }
+            /* Enhanced scrolling for calendar cells */
+            .calendar-dark .rbc-month-view {
+              height: 100%;
+            }
+            .calendar-dark .rbc-month-row {
+              overflow: visible;
+              height: auto !important;
+              flex: 1;
+            }
+            .calendar-dark .rbc-row-content {
+              height: auto !important;
+              position: relative;
+              user-select: none;
+              -webkit-user-select: none;
+              z-index: 4;
+            }
+            .calendar-dark .rbc-row-content-scrollable {
+              display: flex;
+              flex-direction: column;
+              height: 100%;
+            }
+            .calendar-dark .rbc-day-bg {
+              position: relative;
+            }
+            .calendar-dark .rbc-event {
+              position: relative;
+              z-index: 5;
+              cursor: pointer;
+            }
+            /* Make events container scrollable */
+            .calendar-dark .rbc-month-view .rbc-month-row {
+              min-height: 100px; /* Ensure minimum height for rows */
+            }
+            .calendar-dark .rbc-row-bg {
+              display: flex;
+              flex: 1 0 0;
+              position: relative;
+              overflow: hidden;
+            }
+            .calendar-dark .rbc-day-bg {
+              flex: 1 0 0%;
+            }
+            .calendar-dark .rbc-events-container {
+              margin-right: 0;
+              max-height: 85px;
+              overflow-y: auto;
+              padding-right: 10px;
+            }
+            /* Scrollbar styling */
+            .calendar-dark .rbc-events-container::-webkit-scrollbar {
+              width: 4px;
+            }
+            .calendar-dark .rbc-events-container::-webkit-scrollbar-track {
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 4px;
+            }
+            .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb {
+              background: rgba(255, 255, 255, 0.3);
+              border-radius: 4px;
+            }
+            .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb:hover {
+              background: rgba(255, 255, 255, 0.5);
+            }
             @media (max-width: 640px) {
               .calendar-dark .rbc-event {
                 padding: 1px 2px;
@@ -201,6 +284,7 @@ export function TournamentCalendar() {
             toolbar={true}
             date={date}
             onNavigate={setDate}
+            onSelectEvent={handleSelectEvent}
             eventPropGetter={(event: CalendarEvent) => ({
               style: {
                 backgroundColor: event.isCompleted ? '#22c55e' : '#2563eb',
@@ -225,6 +309,16 @@ export function TournamentCalendar() {
           />
         </div>
       </CardContent>
+      
+      <MatchDetailsModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        matchId={selectedMatch?.id || null}
+        matchDate={selectedMatch?.date || null}
+        homeTeam={selectedMatch?.homeTeam || null}
+        awayTeam={selectedMatch?.awayTeam || null}
+        isCompleted={selectedMatch?.isCompleted || false}
+      />
     </Card>
   );
 }

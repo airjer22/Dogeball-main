@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
 import { EditMatchModal } from "./edit-match-modal";
+import { MatchDetailsModal } from "./match-details-modal";
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -89,6 +90,11 @@ export function Calendar({
     match: null as any,
   });
 
+  const [detailsState, setDetailsState] = useState({
+    isOpen: false,
+    match: null as MatchEvent | null,
+  });
+
   // We don't need to fetch scheduled matches anymore as they're passed via props
   // But we'll keep the state for internal use
   useEffect(() => {
@@ -153,33 +159,42 @@ export function Calendar({
         isOpen: true,
         match: matchData,
       });
-    } else if (event.status !== "completed") {
-      if (event.matchType === 'quarterfinal' || 
-          event.matchType === 'semifinal' || 
-          event.matchType === 'final') {
-        toast({
-          title: "Score Update Restricted",
-          description: "Please update the score in the tournament bracket section",
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      const matchData = {
-        id: event.id,
-        homeTeam: event.homeTeam.name,
-        awayTeam: event.awayTeam.name,
-        homeTeamPhoto: event.homeTeam.photo,
-        awayTeamPhoto: event.awayTeam.photo,
-        start: event.start,
-        status: event.status,
-        matchType: event.matchType
-      };
-
-      setScoringState({
+    } else {
+      // First, show the match details modal for any match
+      setDetailsState({
         isOpen: true,
-        match: matchData,
+        match: event,
       });
+      
+      // If the match is not completed and not a special match type, also allow scoring
+      if (event.status !== "completed") {
+        if (event.matchType === 'quarterfinal' || 
+            event.matchType === 'semifinal' || 
+            event.matchType === 'final') {
+          toast({
+            title: "Score Update Restricted",
+            description: "Please update the score in the tournament bracket section",
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        const matchData = {
+          id: event.id,
+          homeTeam: event.homeTeam.name,
+          awayTeam: event.awayTeam.name,
+          homeTeamPhoto: event.homeTeam.photo,
+          awayTeamPhoto: event.awayTeam.photo,
+          start: event.start,
+          status: event.status,
+          matchType: event.matchType
+        };
+
+        setScoringState({
+          isOpen: true,
+          match: matchData,
+        });
+      }
     }
   };
 
@@ -271,6 +286,71 @@ export function Calendar({
           isOver && "ring-2 ring-blue-500/50"
         )}
       >
+        <style jsx global>{`
+          /* Enhanced scrolling for calendar cells */
+          .calendar-dark .rbc-month-view {
+            height: 100%;
+          }
+          .calendar-dark .rbc-month-row {
+            overflow: visible;
+            height: auto !important;
+            flex: 1;
+          }
+          .calendar-dark .rbc-row-content {
+            height: auto !important;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+            z-index: 4;
+          }
+          .calendar-dark .rbc-row-content-scrollable {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+          }
+          .calendar-dark .rbc-day-bg {
+            position: relative;
+          }
+          .calendar-dark .rbc-event {
+            position: relative;
+            z-index: 5;
+            cursor: pointer;
+          }
+          /* Make events container scrollable */
+          .calendar-dark .rbc-month-view .rbc-month-row {
+            min-height: 100px; /* Ensure minimum height for rows */
+          }
+          .calendar-dark .rbc-row-bg {
+            display: flex;
+            flex: 1 0 0;
+            position: relative;
+            overflow: hidden;
+          }
+          .calendar-dark .rbc-day-bg {
+            flex: 1 0 0%;
+          }
+          .calendar-dark .rbc-events-container {
+            margin-right: 0;
+            max-height: 85px;
+            overflow-y: auto;
+            padding-right: 10px;
+          }
+          /* Scrollbar styling */
+          .calendar-dark .rbc-events-container::-webkit-scrollbar {
+            width: 4px;
+          }
+          .calendar-dark .rbc-events-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+          }
+          .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+          }
+          .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+          }
+        `}</style>
         
         <BigCalendar
           localizer={localizer}
@@ -373,6 +453,21 @@ export function Calendar({
           };
           fetchScheduledMatches();
         }}
+      />
+
+      <MatchDetailsModal
+        open={detailsState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsState({ isOpen: false, match: null });
+          }
+        }}
+        matchId={detailsState.match?.id || null}
+        matchDate={detailsState.match?.start || null}
+        homeTeam={detailsState.match?.homeTeam || null}
+        awayTeam={detailsState.match?.awayTeam || null}
+        status={detailsState.match?.status || "scheduled"}
+        isScored={detailsState.match?.status === "completed"}
       />
     </>
   );
