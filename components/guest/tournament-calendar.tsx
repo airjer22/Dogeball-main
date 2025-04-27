@@ -182,68 +182,79 @@ export function TournamentCalendar() {
               border-radius: 4px;
               padding: 2px 4px;
             }
-            /* Enhanced scrolling for calendar cells */
+            /* Fixed height for month rows and contained events */
             .calendar-dark .rbc-month-view {
               height: 100%;
             }
             .calendar-dark .rbc-month-row {
-              overflow: visible;
-              height: auto !important;
-              flex: 1;
+              min-height: 120px;
+              max-height: 120px;
+              overflow: hidden;
             }
             .calendar-dark .rbc-row-content {
-              height: auto !important;
-              position: relative;
-              user-select: none;
-              -webkit-user-select: none;
-              z-index: 4;
-            }
-            .calendar-dark .rbc-row-content-scrollable {
-              display: flex;
-              flex-direction: column;
-              height: 100%;
-            }
-            .calendar-dark .rbc-day-bg {
-              position: relative;
+              max-height: 100%;
+              overflow: hidden;
             }
             .calendar-dark .rbc-event {
               position: relative;
-              z-index: 5;
+              cursor: pointer;
+              margin-bottom: 1px;
+            }
+            
+            /* Prevent events from overflowing */
+            .calendar-dark .rbc-event-content {
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            
+            /* Custom scrollable container for each day */
+            .calendar-dark .rbc-day-bg {
+              position: relative;
+            }
+            
+            /* Add a custom class to day cells */
+            .calendar-dark .rbc-day-bg::after {
+              content: "";
+              display: block;
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              pointer-events: none;
+            }
+            
+            /* Style for the "more" indicator */
+            .calendar-dark .rbc-show-more {
+              background-color: transparent;
+              color: #3b82f6;
+              font-weight: bold;
+              padding: 2px 5px;
+              text-align: center;
               cursor: pointer;
             }
-            /* Make events container scrollable */
+            
+            /* Limit the number of visible events */
             .calendar-dark .rbc-month-view .rbc-month-row {
-              min-height: 100px; /* Ensure minimum height for rows */
-            }
-            .calendar-dark .rbc-row-bg {
-              display: flex;
-              flex: 1 0 0;
-              position: relative;
               overflow: hidden;
             }
-            .calendar-dark .rbc-day-bg {
-              flex: 1 0 0%;
+            
+            /* Make sure events don't overflow */
+            .calendar-dark .rbc-event {
+              overflow: hidden;
+              max-height: 22px;
             }
-            .calendar-dark .rbc-events-container {
-              margin-right: 0;
-              max-height: 85px;
-              overflow-y: auto;
-              padding-right: 10px;
+            
+            /* Ensure the day cells have proper sizing */
+            .calendar-dark .rbc-date-cell {
+              padding-right: 5px;
+              text-align: right;
             }
-            /* Scrollbar styling */
-            .calendar-dark .rbc-events-container::-webkit-scrollbar {
-              width: 4px;
-            }
-            .calendar-dark .rbc-events-container::-webkit-scrollbar-track {
-              background: rgba(255, 255, 255, 0.1);
-              border-radius: 4px;
-            }
-            .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb {
-              background: rgba(255, 255, 255, 0.3);
-              border-radius: 4px;
-            }
-            .calendar-dark .rbc-events-container::-webkit-scrollbar-thumb:hover {
-              background: rgba(255, 255, 255, 0.5);
+            
+            /* Improve the appearance of the calendar */
+            .calendar-dark .rbc-today {
+              background-color: rgba(59, 130, 246, 0.1);
             }
             @media (max-width: 640px) {
               .calendar-dark .rbc-event {
@@ -285,6 +296,14 @@ export function TournamentCalendar() {
             date={date}
             onNavigate={setDate}
             onSelectEvent={handleSelectEvent}
+            popup={true}
+            components={{
+              event: (props) => (
+                <div title={props.event.title}>
+                  <div className="text-xs">{props.event.title}</div>
+                </div>
+              ),
+            }}
             eventPropGetter={(event: CalendarEvent) => ({
               style: {
                 backgroundColor: event.isCompleted ? '#22c55e' : '#2563eb',
