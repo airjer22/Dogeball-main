@@ -112,14 +112,55 @@ export function TournamentCalendar() {
   }
 
   const handleSelectEvent = (event: CalendarEvent) => {
-    setSelectedMatch({
-      id: event.id,
-      date: event.start,
-      homeTeam: { name: event.homeTeam },
-      awayTeam: { name: event.awayTeam },
-      isCompleted: event.isCompleted
-    });
-    setIsModalOpen(true);
+    // Fetch the match details to get team photos
+    const fetchMatchDetails = async () => {
+      try {
+        const response = await axios.get("/api/get-all-scheduled-matches");
+        if (response.data.success) {
+          const matchData = response.data.data.find((match: any) => match._id === event.id);
+          
+          if (matchData) {
+            setSelectedMatch({
+              id: event.id,
+              date: event.start,
+              homeTeam: { 
+                name: event.homeTeam,
+                photo: matchData.homeTeamId.teamPhoto
+              },
+              awayTeam: { 
+                name: event.awayTeam,
+                photo: matchData.awayTeamId.teamPhoto
+              },
+              isCompleted: event.isCompleted
+            });
+            setIsModalOpen(true);
+          } else {
+            // Fallback if match not found
+            setSelectedMatch({
+              id: event.id,
+              date: event.start,
+              homeTeam: { name: event.homeTeam },
+              awayTeam: { name: event.awayTeam },
+              isCompleted: event.isCompleted
+            });
+            setIsModalOpen(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching match details:", error);
+        // Fallback if API call fails
+        setSelectedMatch({
+          id: event.id,
+          date: event.start,
+          homeTeam: { name: event.homeTeam },
+          awayTeam: { name: event.awayTeam },
+          isCompleted: event.isCompleted
+        });
+        setIsModalOpen(true);
+      }
+    };
+    
+    fetchMatchDetails();
   };
 
   return (
