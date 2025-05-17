@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, Trash2, ChevronRight, ChevronDown, Users, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -24,6 +25,15 @@ interface Tournament {
   tournamentName: string;
 }
 
+interface TeamMember {
+  _id: string;
+  name: string;
+  photo: {
+    url: string | null;
+    publicId: string | null;
+  };
+}
+
 interface Team {
   _id: string;
   teamName: string;
@@ -32,6 +42,8 @@ interface Team {
     publicId: string | null;
   };
   tournamentId: string;
+  teamMembers?: TeamMember[];
+  substitutePlayers?: TeamMember[];
 }
 
 interface TeamListProps {
@@ -47,8 +59,10 @@ export function TeamList({
 }: TeamListProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<"tournaments" | "members">("tournaments");
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<{ [key: string]: Team[] }>({});
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
   
   useEffect(() => {
@@ -87,6 +101,37 @@ export function TeamList({
 
     fetchTournaments();
   }, []);
+
+  // Fetch all teams for all tournaments
+  useEffect(() => {
+    const fetchAllTeams = async () => {
+      if (!tournaments.length) return;
+      
+      try {
+        const allTeamsData: Team[] = [];
+        
+        for (const tournament of tournaments) {
+          try {
+            const response = await axios.post("/api/get-teams", {
+              tournamentId: tournament._id,
+            });
+            
+            if (response.data.success && response.data.data) {
+              allTeamsData.push(...response.data.data);
+            }
+          } catch (err) {
+            console.error(`Error fetching teams for tournament ${tournament._id}:`, err);
+          }
+        }
+        
+        setAllTeams(allTeamsData);
+      } catch (err) {
+        console.error("Error fetching all teams:", err);
+      }
+    };
+
+    fetchAllTeams();
+  }, [tournaments, refetchTrigger]);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -163,11 +208,34 @@ export function TeamList({
     }
   };
 
+  // Filter tournaments or teams based on search mode
   const filteredTournaments = tournaments.filter((tournament) =>
     tournament?.tournamentName
       ?.toLowerCase()
       .includes((searchQuery || "").toLowerCase())
   );
+
+  // Filter teams based on member names
+  const teamsWithMatchingMembers = searchQuery && searchMode === "members" 
+    ? allTeams.filter(team => {
+        const memberMatches = team.teamMembers?.some(member => 
+          member.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ) || false;
+        
+        const substituteMatches = team.substitutePlayers?.some(member => 
+          member.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ) || false;
+        
+        return memberMatches || substituteMatches;
+      })
+    : [];
+
+  // Get tournaments that have teams with matching members
+  const tournamentsWithMatchingMembers = searchQuery && searchMode === "members"
+    ? tournaments.filter(tournament => 
+        teamsWithMatchingMembers.some(team => team.tournamentId === tournament._id)
+      )
+    : [];
 
   if (loading && !tournaments.length) {
     return <div className="text-white">Loading tournaments...</div>;
@@ -179,20 +247,35 @@ export function TeamList({
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-x-hidden px-2 sm:px-4">
-      {/* Search Input */}
-      <div className="relative pt-2 ">
-        <Search className="absolute left-3 top-1/2  pt-2 -translate-y-1/2 h-6 w-6 text-gray-400" />
-        <Input
-          placeholder="Search tournaments..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-gray-400 w-full"
-        />
+      {/* Search Tabs and Input */}
+      <div className="space-y-2 pt-2">
+        <Tabs defaultValue="tournaments" onValueChange={(value) => setSearchMode(value as "tournaments" | "members")}>
+          <TabsList className="grid grid-cols-2 bg-white/5">
+            <TabsTrigger value="tournaments" className="data-[state=active]:bg-blue-600">
+              <Search className="h-4 w-4 mr-2" />
+              Tournaments
+            </TabsTrigger>
+            <TabsTrigger value="members" className="data-[state=active]:bg-blue-600">
+              <User className="h-4 w-4 mr-2" />
+              Members
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            placeholder={searchMode === "tournaments" ? "Search tournaments..." : "Search team members..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-gray-400 w-full"
+          />
+        </div>
       </div>
 
       {/* Tournament List */}
       <div className="space-y-1">
-        {filteredTournaments.map((tournament) => (
+        {(searchMode === "tournaments" ? filteredTournaments : tournamentsWithMatchingMembers).map((tournament) => (
           <div key={tournament._id} className="space-y-1">
             <div
               onClick={() =>
@@ -221,7 +304,12 @@ export function TeamList({
 
             {/* Team Items */}
             {selectedTournament === tournament._id &&
-              teams[tournament._id]?.map((team) => (
+              teams[tournament._id]?.filter(team => {
+                if (searchMode === "members" && searchQuery) {
+                  return teamsWithMatchingMembers.some(t => t._id === team._id);
+                }
+                return true;
+              }).map((team) => (
                 <div
                   key={team._id}
                   onClick={() => onTeamSelect(team._id)}
@@ -240,9 +328,24 @@ export function TeamList({
                         <span className="text-xs sm:text-sm">{team.teamName?.[0] || ""}</span>
                       )}
                     </Avatar>
-                    <span className="font-medium text-white text-sm sm:text-base truncate">
-                      {team.teamName}
-                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-white text-sm sm:text-base truncate">
+                        {team.teamName}
+                      </span>
+                      {searchMode === "members" && searchQuery && team.teamMembers && (
+                        <div className="text-xs text-gray-400">
+                          {team.teamMembers
+                            .filter(member => member.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map(member => member.name)
+                            .concat(
+                              team.substitutePlayers
+                                ?.filter(member => member.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .map(member => `${member.name} (Sub)`) || []
+                            )
+                            .join(", ")}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
