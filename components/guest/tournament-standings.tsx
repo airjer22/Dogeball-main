@@ -116,8 +116,9 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
             <div className="min-w-[640px]">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-transparent">
-                    <TableHead className="text-blue-400 text-sm md:text-base">Team</TableHead>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-blue-400 text-sm md:text-base w-10 md:w-12">#</TableHead>
+                  <TableHead className="text-blue-400 text-sm md:text-base">Team</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">W</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">T</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">L</TableHead>
@@ -127,11 +128,14 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teams.map((team) => (
+                  {teams.map((team, index) => (
                     <TableRow
                       key={team._id}
                       className="border-white/10 hover:bg-white/5"
                     >
+                      <TableCell className="text-center text-white text-sm md:text-base font-semibold">
+                        {index + 1}
+                      </TableCell>
                       <TableCell className="font-medium text-white text-sm md:text-base">
                         <div className="flex items-center gap-2 md:gap-3">
                           <Avatar className="h-6 w-6 md:h-8 md:w-8 bg-white/10">
