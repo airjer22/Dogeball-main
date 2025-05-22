@@ -362,6 +362,7 @@ export default function StandingsPage() {
               <TableRow className="border-white/10 hover:bg-transparent">
                 <TableHead className="text-blue-400 text-xs md:text-sm whitespace-nowrap w-10 md:w-12">#</TableHead>
                 <TableHead className="text-blue-400 text-xs md:text-sm whitespace-nowrap">Team</TableHead>
+                <TableHead className="text-blue-400 text-center text-xs md:text-sm">MP</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">W</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">T</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">L</TableHead>
@@ -390,6 +391,9 @@ export default function StandingsPage() {
                       </Avatar>
                       <span className="text-xs md:text-sm whitespace-nowrap">{team.teamName}</span>
                     </div>
+                  </TableCell>
+                  <TableCell className="text-center text-white text-xs md:text-sm">
+                    {team.wins + team.ties + team.losses}
                   </TableCell>
                   <TableCell className="text-center text-white text-xs md:text-sm">
                     {team.wins}

@@ -119,6 +119,7 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
                 <TableRow className="border-white/10 hover:bg-transparent">
                   <TableHead className="text-blue-400 text-sm md:text-base w-10 md:w-12">#</TableHead>
                   <TableHead className="text-blue-400 text-sm md:text-base">Team</TableHead>
+                    <TableHead className="text-blue-400 text-center text-sm md:text-base">MP</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">W</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">T</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">L</TableHead>
@@ -147,6 +148,9 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
                           </Avatar>
                           <span className="truncate">{team.teamName}</span>
                         </div>
+                      </TableCell>
+                      <TableCell className="text-center text-white text-sm md:text-base p-2 md:p-4">
+                        {team.wins + team.ties + team.losses}
                       </TableCell>
                       <TableCell className="text-center text-white text-sm md:text-base p-2 md:p-4">
                         {team.wins}
