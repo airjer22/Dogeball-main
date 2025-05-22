@@ -172,7 +172,7 @@ export function MatchScoringModal({
   const handlePinChange = (team: "home" | "away", change: number) => {
     setScores((prev) => ({
       ...prev,
-      [`${team}Pins`]: Math.max(0, Math.min(9, prev[`${team}Pins`] + change)),
+      [`${team}Pins`]: Math.max(0, prev[`${team}Pins`] + change),
     }));
   };
 
