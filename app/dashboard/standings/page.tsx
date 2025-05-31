@@ -373,47 +373,63 @@ export default function StandingsPage() {
             </TableHeader>
             <TableBody>
               {displayTeams.map((team, index) => (
-                <TableRow
-                  key={team._id}
-                  className="border-white/10 hover:bg-white/5"
-                >
-                  <TableCell className="text-center text-white text-xs md:text-sm font-semibold">
-                    {index + 1}
-                  </TableCell>
-                  <TableCell className="font-medium text-white">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <Avatar className="h-6 w-6 md:h-8 md:w-8 bg-white/10">
-                        {team.teamPhoto?.url ? (
-                          <img src={team.teamPhoto.url} alt={team.teamName} />
-                        ) : (
-                          <span className="text-xs md:text-sm">{team.teamName[0]}</span>
-                        )}
-                      </Avatar>
-                      <span className="text-xs md:text-sm whitespace-nowrap">{team.teamName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.wins + team.ties + team.losses}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.wins}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.ties}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.losses}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.goalsFor}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.goalsAgainst}
-                  </TableCell>
-                  <TableCell className="text-center text-white text-xs md:text-sm">
-                    {team.pins}
-                  </TableCell>
-                </TableRow>
+                <>
+                  <TableRow
+                    key={team._id}
+                    className="border-white/10 hover:bg-white/5"
+                  >
+                    <TableCell className="text-center text-white text-xs md:text-sm font-semibold">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className="font-medium text-white">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <Avatar className="h-6 w-6 md:h-8 md:w-8 bg-white/10">
+                          {team.teamPhoto?.url ? (
+                            <img src={team.teamPhoto.url} alt={team.teamName} />
+                          ) : (
+                            <span className="text-xs md:text-sm">{team.teamName[0]}</span>
+                          )}
+                        </Avatar>
+                        <span className="text-xs md:text-sm whitespace-nowrap">{team.teamName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.wins + team.ties + team.losses}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.wins}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.ties}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.losses}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.goalsFor}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.goalsAgainst}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm">
+                      {team.pins}
+                    </TableCell>
+                  </TableRow>
+                  {index === 7 && displayTeams.length > 8 && (
+                    <tr>
+                      <td colSpan={9} className="p-0">
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t-4 border-double border-green-400"></div>
+                          </div>
+                          <div className="relative flex justify-center text-xs">
+                            <span className="bg-gray-900 px-2 text-green-400 font-semibold">PLAYOFF LINE</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </TableBody>
           </Table>
