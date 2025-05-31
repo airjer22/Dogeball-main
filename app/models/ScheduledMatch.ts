@@ -45,6 +45,24 @@ const ScheduledMatchSchema = new Schema({
     type: String,
     enum: ['scheduled', 'in_progress', 'completed'],
     default: 'scheduled'
+  },
+  scores: {
+    homeScore: {
+      type: Number,
+      default: 0
+    },
+    awayScore: {
+      type: Number,
+      default: 0
+    },
+    homePins: {
+      type: Number,
+      default: 0
+    },
+    awayPins: {
+      type: Number,
+      default: 0
+    }
   }
 }, { timestamps: true });
 
