@@ -46,89 +46,10 @@ export async function GET(
     console.log("Match status:", match.status);
     console.log("Match scores:", match.scores);
     
-    // If the match is completed but doesn't have scores, try to calculate them from team stats
+    // If the match is completed but doesn't have scores, we'll leave it as is
+    // This ensures we only show the actual scores that were recorded
     if (match.status === 'completed' && !match.scores) {
-      console.log("Match is completed but has no scores, calculating from team stats");
-      
-      // Get team statistics to calculate the scores
-      const homeTeam = match.homeTeamId;
-      const awayTeam = match.awayTeamId;
-      
-      console.log("Home team stats:", homeTeam);
-      console.log("Away team stats:", awayTeam);
-      
-      // Calculate the likely scores based on team statistics
-      // This is a best-effort approach to reconstruct what the scores might have been
-      
-      // First, determine who won based on the win/loss records
-      let homeWon = false;
-      let awayWon = false;
-      let tie = false;
-      
-      // Check if this match contributed to home team's wins
-      if (homeTeam.wins > 0) {
-        homeWon = true;
-      }
-      
-      // Check if this match contributed to away team's wins
-      if (awayTeam.wins > 0) {
-        awayWon = true;
-      }
-      
-      // Check if this match contributed to a tie
-      if (homeTeam.ties > 0 && awayTeam.ties > 0) {
-        tie = true;
-      }
-      
-      // Set scores based on the outcome
-      let homeScore = 0;
-      let awayScore = 0;
-      
-      if (homeWon && !awayWon) {
-        // Home team won
-        homeScore = Math.max(1, homeTeam.goalsFor || 1);
-        awayScore = Math.max(0, awayTeam.goalsFor || 0);
-        
-        // Make sure home score is greater than away score
-        if (homeScore <= awayScore) {
-          homeScore = awayScore + 1;
-        }
-      } else if (awayWon && !homeWon) {
-        // Away team won
-        homeScore = Math.max(0, homeTeam.goalsFor || 0);
-        awayScore = Math.max(1, awayTeam.goalsFor || 1);
-        
-        // Make sure away score is greater than home score
-        if (awayScore <= homeScore) {
-          awayScore = homeScore + 1;
-        }
-      } else if (tie) {
-        // It was a tie
-        homeScore = Math.max(1, homeTeam.goalsFor || 1);
-        awayScore = homeScore; // Same score for a tie
-      } else {
-        // Can't determine the outcome, use default scores
-        homeScore = 1;
-        awayScore = 1;
-      }
-      
-      // Get pins from team stats
-      const homePins = homeTeam.pins || 0;
-      const awayPins = awayTeam.pins || 0;
-      
-      console.log("Calculated scores:", { homeScore, awayScore, homePins, awayPins });
-      
-      // Add scores to the match
-      match.scores = {
-        homeScore,
-        awayScore,
-        homePins,
-        awayPins
-      };
-      
-      // Save the updated match
-      await match.save();
-      console.log("Match saved with calculated scores");
+      console.log("Match is completed but has no scores");
     }
 
     return Response.json(

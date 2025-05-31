@@ -55,40 +55,32 @@ export function MatchDetailsModal({
   const [loading, setLoading] = useState(false);
   const [matchScores, setMatchScores] = useState<MatchScores | null>(null);
 
-  // Fetch match details including scores
+  // Fetch actual match scores from the database
   useEffect(() => {
     const fetchMatchDetails = async () => {
       if (open && matchId && status === 'completed' && isScored) {
         setLoading(true);
         try {
-          console.log("Fetching match details for ID:", matchId);
-          
-          // Use the API endpoint to get match details with scores
+          // Fetch the match details from the API
           const response = await axios.get(`/api/get-match/${matchId}`);
-          console.log("API response:", response.data);
           
           if (response.data.success) {
             const match = response.data.data;
-            console.log("Match data:", match);
-            console.log("Match scores:", match.scores);
             
             if (match && match.scores) {
-              const scores = {
+              // Use the actual scores from the database
+              setMatchScores({
                 homeScore: match.scores.homeScore || 0,
                 awayScore: match.scores.awayScore || 0,
                 homePins: match.scores.homePins || 0,
                 awayPins: match.scores.awayPins || 0
-              };
-              
-              console.log("Setting scores from database:", scores);
-              setMatchScores(scores);
+              });
             } else {
-              console.log("No scores found in match data, using placeholder scores");
-              
-              // Use placeholder scores if none are available
+              // If no scores are found, show a message
+              console.log("No scores found for this match");
               setMatchScores({
-                homeScore: 1,
-                awayScore: 1,
+                homeScore: 0,
+                awayScore: 0,
                 homePins: 0,
                 awayPins: 0
               });
@@ -96,11 +88,10 @@ export function MatchDetailsModal({
           }
         } catch (error) {
           console.error("Error fetching match details:", error);
-          
-          // Use placeholder scores if there's an error
+          // Show a message if there's an error
           setMatchScores({
-            homeScore: 1,
-            awayScore: 1,
+            homeScore: 0,
+            awayScore: 0,
             homePins: 0,
             awayPins: 0
           });
