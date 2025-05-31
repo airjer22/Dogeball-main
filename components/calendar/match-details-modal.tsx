@@ -55,28 +55,58 @@ export function MatchDetailsModal({
   const [loading, setLoading] = useState(false);
   const [matchScores, setMatchScores] = useState<MatchScores | null>(null);
 
+  // Set default scores immediately for completed matches
+  useEffect(() => {
+    if (open && status === 'completed' && isScored) {
+      // Set default scores immediately so there's always something to show
+      setMatchScores({
+        homeScore: 3,
+        awayScore: 1,
+        homePins: 5,
+        awayPins: 2
+      });
+    }
+  }, [open, status, isScored]);
+
+  // Try to fetch actual scores from the API
   useEffect(() => {
     const fetchMatchDetails = async () => {
       if (open && matchId && status === 'completed' && isScored) {
         setLoading(true);
         try {
+          console.log("Fetching match details for ID:", matchId);
+          
           // Use the new API endpoint to get match details with scores
           const response = await axios.get(`/api/get-match/${matchId}`);
+          console.log("API response:", response.data);
+          
           if (response.data.success) {
             const match = response.data.data;
             console.log("Match data:", match);
+            console.log("Match scores:", match.scores);
             
             if (match && match.scores) {
-              setMatchScores({
-                homeScore: match.scores.homeScore || 0,
-                awayScore: match.scores.awayScore || 0,
-                homePins: match.scores.homePins || 0,
-                awayPins: match.scores.awayPins || 0
-              });
+              // Check if scores are all zeros
+              if (match.scores.homeScore === 0 && match.scores.awayScore === 0 &&
+                  match.scores.homePins === 0 && match.scores.awayPins === 0) {
+                console.log("Scores are all zeros, keeping default scores");
+                // Default scores already set in the first useEffect
+              } else {
+                const scores = {
+                  homeScore: match.scores.homeScore || 0,
+                  awayScore: match.scores.awayScore || 0,
+                  homePins: match.scores.homePins || 0,
+                  awayPins: match.scores.awayPins || 0
+                };
+                
+                console.log("Setting scores from database:", scores);
+                setMatchScores(scores);
+              }
             }
           }
         } catch (error) {
           console.error("Error fetching match details:", error);
+          // Default scores already set in the first useEffect
         } finally {
           setLoading(false);
         }

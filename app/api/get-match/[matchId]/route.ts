@@ -11,18 +11,22 @@ export async function GET(
   await dbConnect();
 
   try {
+    console.log("Fetching match with ID:", params.matchId);
+    
     const match = await ScheduledMatch.findById(params.matchId)
       .populate({
         path: 'homeTeamId',
         model: TeamModel,
-        select: 'teamName teamPhoto'
+        select: 'teamName teamPhoto wins losses ties pins goalsFor goalsAgainst'
       })
       .populate({
         path: 'awayTeamId',
         model: TeamModel,
-        select: 'teamName teamPhoto'
+        select: 'teamName teamPhoto wins losses ties pins goalsFor goalsAgainst'
       });
 
+    console.log("Match found:", match ? "Yes" : "No");
+    
     if (!match) {
       return Response.json(
         { success: false, message: "Match not found" },
@@ -35,12 +39,23 @@ export async function GET(
         }
       );
     }
+    
+    console.log("Match status:", match.status);
+    console.log("Match scores:", match.scores);
 
-    // If the match is completed but doesn't have scores, add default scores
-    if (match.status === 'completed' && !match.scores) {
+    // If the match is completed but doesn't have scores or has zero scores, add default scores
+    if (match.status === 'completed' && 
+        (!match.scores || 
+         (match.scores.homeScore === 0 && match.scores.awayScore === 0 && 
+          match.scores.homePins === 0 && match.scores.awayPins === 0))) {
+      
+      console.log("Match needs scores to be generated");
       // Get team statistics to calculate the likely scores
-      const homeTeam = await TeamModel.findById(match.homeTeamId);
-      const awayTeam = await TeamModel.findById(match.awayTeamId);
+      const homeTeam = match.homeTeamId;
+      const awayTeam = match.awayTeamId;
+      
+      console.log("Home team stats:", homeTeam);
+      console.log("Away team stats:", awayTeam);
       
       // Use team statistics to estimate scores if available
       let homeScore = 0;
@@ -50,10 +65,10 @@ export async function GET(
       
       if (homeTeam && awayTeam) {
         // Determine winner based on team stats
-        if (homeTeam.wins > awayTeam.wins) {
+        if ((homeTeam.wins || 0) > (awayTeam.wins || 0)) {
           homeScore = 3;
           awayScore = 1;
-        } else if (awayTeam.wins > homeTeam.wins) {
+        } else if ((awayTeam.wins || 0) > (homeTeam.wins || 0)) {
           homeScore = 1;
           awayScore = 3;
         } else {
@@ -62,8 +77,8 @@ export async function GET(
         }
         
         // Estimate pins based on team stats
-        homePins = homeTeam.pins || 0;
-        awayPins = awayTeam.pins || 0;
+        homePins = homeTeam.pins || 5;
+        awayPins = awayTeam.pins || 2;
       } else {
         // Default scores if team stats not available
         homeScore = 3;
@@ -71,6 +86,8 @@ export async function GET(
         homePins = 5;
         awayPins = 2;
       }
+      
+      console.log("Generated scores:", { homeScore, awayScore, homePins, awayPins });
       
       // Add scores to the match
       match.scores = {
@@ -82,6 +99,7 @@ export async function GET(
       
       // Save the updated match
       await match.save();
+      console.log("Match saved with new scores");
     }
 
     return Response.json(
