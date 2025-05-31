@@ -60,9 +60,12 @@ export function MatchDetailsModal({
       if (open && matchId && status === 'completed' && isScored) {
         setLoading(true);
         try {
-          const response = await axios.get(`/api/get-all-scheduled-matches`);
+          // Use the new API endpoint to get match details with scores
+          const response = await axios.get(`/api/get-match/${matchId}`);
           if (response.data.success) {
-            const match = response.data.data.find((m: any) => m._id === matchId);
+            const match = response.data.data;
+            console.log("Match data:", match);
+            
             if (match && match.scores) {
               setMatchScores({
                 homeScore: match.scores.homeScore || 0,
