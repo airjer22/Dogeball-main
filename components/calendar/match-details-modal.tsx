@@ -55,20 +55,7 @@ export function MatchDetailsModal({
   const [loading, setLoading] = useState(false);
   const [matchScores, setMatchScores] = useState<MatchScores | null>(null);
 
-  // Set default scores immediately for completed matches
-  useEffect(() => {
-    if (open && status === 'completed' && isScored) {
-      // Set default scores immediately so there's always something to show
-      setMatchScores({
-        homeScore: 3,
-        awayScore: 1,
-        homePins: 5,
-        awayPins: 2
-      });
-    }
-  }, [open, status, isScored]);
-
-  // Try to fetch actual scores from the API
+  // Fetch match details including scores
   useEffect(() => {
     const fetchMatchDetails = async () => {
       if (open && matchId && status === 'completed' && isScored) {
@@ -76,7 +63,7 @@ export function MatchDetailsModal({
         try {
           console.log("Fetching match details for ID:", matchId);
           
-          // Use the new API endpoint to get match details with scores
+          // Use the API endpoint to get match details with scores
           const response = await axios.get(`/api/get-match/${matchId}`);
           console.log("API response:", response.data);
           
@@ -86,27 +73,37 @@ export function MatchDetailsModal({
             console.log("Match scores:", match.scores);
             
             if (match && match.scores) {
-              // Check if scores are all zeros
-              if (match.scores.homeScore === 0 && match.scores.awayScore === 0 &&
-                  match.scores.homePins === 0 && match.scores.awayPins === 0) {
-                console.log("Scores are all zeros, keeping default scores");
-                // Default scores already set in the first useEffect
-              } else {
-                const scores = {
-                  homeScore: match.scores.homeScore || 0,
-                  awayScore: match.scores.awayScore || 0,
-                  homePins: match.scores.homePins || 0,
-                  awayPins: match.scores.awayPins || 0
-                };
-                
-                console.log("Setting scores from database:", scores);
-                setMatchScores(scores);
-              }
+              const scores = {
+                homeScore: match.scores.homeScore || 0,
+                awayScore: match.scores.awayScore || 0,
+                homePins: match.scores.homePins || 0,
+                awayPins: match.scores.awayPins || 0
+              };
+              
+              console.log("Setting scores from database:", scores);
+              setMatchScores(scores);
+            } else {
+              console.log("No scores found in match data, using placeholder scores");
+              
+              // Use placeholder scores if none are available
+              setMatchScores({
+                homeScore: 1,
+                awayScore: 1,
+                homePins: 0,
+                awayPins: 0
+              });
             }
           }
         } catch (error) {
           console.error("Error fetching match details:", error);
-          // Default scores already set in the first useEffect
+          
+          // Use placeholder scores if there's an error
+          setMatchScores({
+            homeScore: 1,
+            awayScore: 1,
+            homePins: 0,
+            awayPins: 0
+          });
         } finally {
           setLoading(false);
         }

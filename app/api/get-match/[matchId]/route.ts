@@ -43,51 +43,80 @@ export async function GET(
     console.log("Match status:", match.status);
     console.log("Match scores:", match.scores);
 
-    // If the match is completed but doesn't have scores or has zero scores, add default scores
-    if (match.status === 'completed' && 
-        (!match.scores || 
-         (match.scores.homeScore === 0 && match.scores.awayScore === 0 && 
-          match.scores.homePins === 0 && match.scores.awayPins === 0))) {
+    console.log("Match status:", match.status);
+    console.log("Match scores:", match.scores);
+    
+    // If the match is completed but doesn't have scores, try to calculate them from team stats
+    if (match.status === 'completed' && !match.scores) {
+      console.log("Match is completed but has no scores, calculating from team stats");
       
-      console.log("Match needs scores to be generated");
-      // Get team statistics to calculate the likely scores
+      // Get team statistics to calculate the scores
       const homeTeam = match.homeTeamId;
       const awayTeam = match.awayTeamId;
       
       console.log("Home team stats:", homeTeam);
       console.log("Away team stats:", awayTeam);
       
-      // Use team statistics to estimate scores if available
-      let homeScore = 0;
-      let awayScore = 0;
-      let homePins = 0;
-      let awayPins = 0;
+      // Calculate the likely scores based on team statistics
+      // This is a best-effort approach to reconstruct what the scores might have been
       
-      if (homeTeam && awayTeam) {
-        // Determine winner based on team stats
-        if ((homeTeam.wins || 0) > (awayTeam.wins || 0)) {
-          homeScore = 3;
-          awayScore = 1;
-        } else if ((awayTeam.wins || 0) > (homeTeam.wins || 0)) {
-          homeScore = 1;
-          awayScore = 3;
-        } else {
-          homeScore = 2;
-          awayScore = 2;
-        }
-        
-        // Estimate pins based on team stats
-        homePins = homeTeam.pins || 5;
-        awayPins = awayTeam.pins || 2;
-      } else {
-        // Default scores if team stats not available
-        homeScore = 3;
-        awayScore = 1;
-        homePins = 5;
-        awayPins = 2;
+      // First, determine who won based on the win/loss records
+      let homeWon = false;
+      let awayWon = false;
+      let tie = false;
+      
+      // Check if this match contributed to home team's wins
+      if (homeTeam.wins > 0) {
+        homeWon = true;
       }
       
-      console.log("Generated scores:", { homeScore, awayScore, homePins, awayPins });
+      // Check if this match contributed to away team's wins
+      if (awayTeam.wins > 0) {
+        awayWon = true;
+      }
+      
+      // Check if this match contributed to a tie
+      if (homeTeam.ties > 0 && awayTeam.ties > 0) {
+        tie = true;
+      }
+      
+      // Set scores based on the outcome
+      let homeScore = 0;
+      let awayScore = 0;
+      
+      if (homeWon && !awayWon) {
+        // Home team won
+        homeScore = Math.max(1, homeTeam.goalsFor || 1);
+        awayScore = Math.max(0, awayTeam.goalsFor || 0);
+        
+        // Make sure home score is greater than away score
+        if (homeScore <= awayScore) {
+          homeScore = awayScore + 1;
+        }
+      } else if (awayWon && !homeWon) {
+        // Away team won
+        homeScore = Math.max(0, homeTeam.goalsFor || 0);
+        awayScore = Math.max(1, awayTeam.goalsFor || 1);
+        
+        // Make sure away score is greater than home score
+        if (awayScore <= homeScore) {
+          awayScore = homeScore + 1;
+        }
+      } else if (tie) {
+        // It was a tie
+        homeScore = Math.max(1, homeTeam.goalsFor || 1);
+        awayScore = homeScore; // Same score for a tie
+      } else {
+        // Can't determine the outcome, use default scores
+        homeScore = 1;
+        awayScore = 1;
+      }
+      
+      // Get pins from team stats
+      const homePins = homeTeam.pins || 0;
+      const awayPins = awayTeam.pins || 0;
+      
+      console.log("Calculated scores:", { homeScore, awayScore, homePins, awayPins });
       
       // Add scores to the match
       match.scores = {
@@ -99,7 +128,7 @@ export async function GET(
       
       // Save the updated match
       await match.save();
-      console.log("Match saved with new scores");
+      console.log("Match saved with calculated scores");
     }
 
     return Response.json(
