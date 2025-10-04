@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
 import { EditMatchModal } from "./edit-match-modal";
+import { CompletedMatchModal } from "./completed-match-modal";
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -89,6 +90,11 @@ export function Calendar({
     match: null as any,
   });
 
+  const [completedMatchState, setCompletedMatchState] = useState({
+    isOpen: false,
+    match: null as any,
+  });
+
 
   // We don't need to fetch scheduled matches anymore as they're passed via props
   // But we'll keep the state for internal use
@@ -154,10 +160,25 @@ export function Calendar({
         isOpen: true,
         match: matchData,
       });
-    } else if (event.status !== "completed") {
+    } else if (event.status === "completed") {
+      // If the match is completed, open the completed match modal
+      const matchData = {
+        id: event.id,
+        homeTeam: event.homeTeam.name,
+        awayTeam: event.awayTeam.name,
+        homeTeamPhoto: event.homeTeam.photo,
+        awayTeamPhoto: event.awayTeam.photo,
+        start: event.start,
+      };
+
+      setCompletedMatchState({
+        isOpen: true,
+        match: matchData,
+      });
+    } else {
       // If the match is not completed and not a special match type, allow scoring
-      if (event.matchType === 'quarterfinal' || 
-          event.matchType === 'semifinal' || 
+      if (event.matchType === 'quarterfinal' ||
+          event.matchType === 'semifinal' ||
           event.matchType === 'final') {
         toast({
           title: "Score Update Restricted",
@@ -268,43 +289,85 @@ export function Calendar({
           }
         }}
         className={cn(
-          "h-[calc(100vh-10rem)] bg-white/5 rounded-lg   p-4",
+          "h-[calc(100vh-10rem)] md:h-[calc(100vh-10rem)] bg-white/5 rounded-lg p-2 md:p-4",
           isEditing && "cursor-copy",
           isOver && "ring-2 ring-blue-500/50"
         )}
       >
         <style jsx global>{`
-          /* Fixed height for month rows and contained events */
+          /* Calendar base styles */
           .calendar-dark .rbc-month-view {
             height: 100%;
           }
-          .calendar-dark .rbc-month-row {
-            min-height: 120px;
-            max-height: 120px;
-            overflow: hidden;
+
+          /* Desktop styles - fixed height rows */
+          @media (min-width: 1024px) {
+            .calendar-dark .rbc-month-row {
+              min-height: 120px;
+              max-height: 120px;
+              overflow: hidden;
+            }
+            .calendar-dark .rbc-row-content {
+              max-height: 100%;
+              overflow: hidden;
+            }
           }
-          .calendar-dark .rbc-row-content {
-            max-height: 100%;
-            overflow: hidden;
+
+          /* Tablet styles - taller rows */
+          @media (min-width: 640px) and (max-width: 1023px) {
+            .calendar-dark .rbc-month-row {
+              min-height: 150px;
+              overflow: visible;
+            }
+            .calendar-dark .rbc-row-content {
+              overflow: visible;
+            }
+            .calendar-dark .rbc-row-segment {
+              padding: 2px 1px;
+            }
           }
+
+          /* Mobile styles - flexible height */
+          @media (max-width: 639px) {
+            .calendar-dark .rbc-month-row {
+              min-height: 100px;
+              overflow: visible;
+            }
+            .calendar-dark .rbc-row-content {
+              overflow: visible;
+            }
+            .calendar-dark .rbc-event {
+              font-size: 11px;
+              padding: 1px 3px;
+            }
+            .calendar-dark .rbc-date-cell {
+              font-size: 12px;
+              padding: 2px;
+            }
+            .calendar-dark .rbc-header {
+              font-size: 12px;
+              padding: 4px 2px;
+            }
+          }
+
           .calendar-dark .rbc-event {
             position: relative;
             cursor: pointer;
             margin-bottom: 1px;
           }
-          
+
           /* Prevent events from overflowing */
           .calendar-dark .rbc-event-content {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
-          
+
           /* Custom scrollable container for each day */
           .calendar-dark .rbc-day-bg {
             position: relative;
           }
-          
+
           /* Add a custom class to day cells */
           .calendar-dark .rbc-day-bg::after {
             content: "";
@@ -316,7 +379,7 @@ export function Calendar({
             bottom: 0;
             pointer-events: none;
           }
-          
+
           /* Style for the "more" indicator */
           .calendar-dark .rbc-show-more {
             background-color: transparent;
@@ -325,28 +388,36 @@ export function Calendar({
             padding: 2px 5px;
             text-align: center;
             cursor: pointer;
+            font-size: 11px;
           }
-          
-          /* Limit the number of visible events */
-          .calendar-dark .rbc-month-view .rbc-month-row {
-            overflow: hidden;
+
+          /* Make sure events don't overflow on desktop */
+          @media (min-width: 1024px) {
+            .calendar-dark .rbc-event {
+              overflow: hidden;
+              max-height: 22px;
+            }
           }
-          
-          /* Make sure events don't overflow */
-          .calendar-dark .rbc-event {
-            overflow: hidden;
-            max-height: 22px;
-          }
-          
+
           /* Ensure the day cells have proper sizing */
           .calendar-dark .rbc-date-cell {
             padding-right: 5px;
             text-align: right;
           }
-          
+
           /* Improve the appearance of the calendar */
           .calendar-dark .rbc-today {
             background-color: rgba(59, 130, 246, 0.1);
+          }
+
+          /* Allow row content to expand on mobile/tablet */
+          @media (max-width: 1023px) {
+            .calendar-dark .rbc-month-view .rbc-row {
+              min-height: auto;
+            }
+            .calendar-dark .rbc-row-content-scrollable {
+              overflow: visible;
+            }
           }
         `}</style>
         
@@ -456,6 +527,21 @@ export function Calendar({
             }
           };
           fetchScheduledMatches();
+        }}
+      />
+
+      <CompletedMatchModal
+        open={completedMatchState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCompletedMatchState({ isOpen: false, match: null });
+          }
+        }}
+        match={completedMatchState.match}
+        onScoreUpdated={() => {
+          if (onMatchUpdated) {
+            onMatchUpdated();
+          }
         }}
       />
     </>
