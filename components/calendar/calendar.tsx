@@ -16,11 +16,7 @@ import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
 import { EditMatchModal } from "./edit-match-modal";
-<<<<<<< HEAD
-import { MatchDetailsModal } from "./match-details-modal";
-=======
 import { CompletedMatchModal } from "./completed-match-modal";
->>>>>>> Refinement-Branch
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -94,20 +90,9 @@ export function Calendar({
     match: null as any,
   });
 
-<<<<<<< HEAD
-  const [detailsState, setDetailsState] = useState({
-    isOpen: false,
-    matchId: null as string | null,
-    matchDate: null as Date | null,
-    homeTeam: null as any,
-    awayTeam: null as any,
-    status: 'scheduled' as 'scheduled' | 'in_progress' | 'completed',
-    isScored: false,
-=======
   const [completedMatchState, setCompletedMatchState] = useState({
     isOpen: false,
     match: null as any,
->>>>>>> Refinement-Branch
   });
 
 
@@ -176,17 +161,6 @@ export function Calendar({
         match: matchData,
       });
     } else if (event.status === "completed") {
-<<<<<<< HEAD
-      // If the match is completed, show the match details with score
-      setDetailsState({
-        isOpen: true,
-        matchId: event.id,
-        matchDate: event.start,
-        homeTeam: event.homeTeam,
-        awayTeam: event.awayTeam,
-        status: event.status,
-        isScored: true,
-=======
       // If the match is completed, open the completed match modal
       const matchData = {
         id: event.id,
@@ -200,7 +174,6 @@ export function Calendar({
       setCompletedMatchState({
         isOpen: true,
         match: matchData,
->>>>>>> Refinement-Branch
       });
     } else {
       // If the match is not completed and not a special match type, allow scoring
@@ -436,19 +409,6 @@ export function Calendar({
           .calendar-dark .rbc-today {
             background-color: rgba(59, 130, 246, 0.1);
           }
-<<<<<<< HEAD
-          
-          /* Style for completed matches */
-          .calendar-dark .rbc-event.completed {
-            background-color: rgba(34, 197, 94, 0.7);
-            border-color: rgba(34, 197, 94, 0.9);
-          }
-          
-          /* Style for in-progress matches */
-          .calendar-dark .rbc-event.in_progress {
-            background-color: rgba(234, 179, 8, 0.7);
-            border-color: rgba(234, 179, 8, 0.9);
-=======
 
           /* Allow row content to expand on mobile/tablet */
           @media (max-width: 1023px) {
@@ -458,7 +418,6 @@ export function Calendar({
             .calendar-dark .rbc-row-content-scrollable {
               overflow: visible;
             }
->>>>>>> Refinement-Branch
           }
         `}</style>
         
@@ -571,29 +530,6 @@ export function Calendar({
         }}
       />
 
-<<<<<<< HEAD
-      <MatchDetailsModal
-        open={detailsState.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDetailsState({
-              isOpen: false,
-              matchId: null,
-              matchDate: null,
-              homeTeam: null,
-              awayTeam: null,
-              status: 'scheduled',
-              isScored: false,
-            });
-          }
-        }}
-        matchId={detailsState.matchId}
-        matchDate={detailsState.matchDate}
-        homeTeam={detailsState.homeTeam}
-        awayTeam={detailsState.awayTeam}
-        status={detailsState.status}
-        isScored={detailsState.isScored}
-=======
       <CompletedMatchModal
         open={completedMatchState.isOpen}
         onOpenChange={(open) => {
@@ -607,7 +543,6 @@ export function Calendar({
             onMatchUpdated();
           }
         }}
->>>>>>> Refinement-Branch
       />
     </>
   );
