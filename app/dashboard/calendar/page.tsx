@@ -6,12 +6,19 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/calendar/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PencilIcon, Search, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Pencil as PencilIcon, Search, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDrag } from "react-dnd";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Types and Interfaces
 export type RoundType = "regular" | "quarterFinal" | "semiFinal" | "final";
@@ -205,6 +212,8 @@ export default function CalendarPage() {
   const [scheduledMatches, setScheduledMatches] = useState<ScheduledMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasTournaments, setHasTournaments] = useState(false);
+  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -219,16 +228,29 @@ export default function CalendarPage() {
         }
 
         setHasTournaments(true);
+        setTournaments(tournamentsResponse.data.data);
+
+        if (!selectedTournament && tournamentsResponse.data.data.length > 0) {
+          setSelectedTournament(tournamentsResponse.data.data[0]._id);
+          return;
+        }
+
+        if (!selectedTournament) {
+          setLoading(false);
+          return;
+        }
 
         // Fetch unscheduled matches
         const matchesResponse = await axios.get("/api/get-match");
-        
+
         // Process unscheduled matches
-        if (matchesResponse.data && 
-            matchesResponse.data.message !== "No unscheduled matches found." && 
+        if (matchesResponse.data &&
+            matchesResponse.data.message !== "No unscheduled matches found." &&
             matchesResponse.data.message !== "All matches are scheduled.") {
-          
-          const matches = matchesResponse.data as Match[];
+
+          const matches = (matchesResponse.data as Match[]).filter(
+            (match) => match.tournamentId === selectedTournament
+          );
           
           const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
             const key = `${match.round}-${match.roundType}`;
@@ -272,9 +294,11 @@ export default function CalendarPage() {
 
         // Fetch scheduled matches
         const scheduledMatchesResponse = await axios.get("/api/get-all-scheduled-matches");
-        
+
         if (scheduledMatchesResponse.data && scheduledMatchesResponse.data.success) {
-          const scheduledMatchesData = scheduledMatchesResponse.data.data;
+          const scheduledMatchesData = scheduledMatchesResponse.data.data.filter(
+            (match: any) => match.tournamentId === selectedTournament
+          );
           
           const scheduled = scheduledMatchesData.map((match: any) => ({
             id: match._id,
@@ -312,20 +336,24 @@ export default function CalendarPage() {
     };
 
     checkTournamentsAndFetchMatches();
-  }, [toast]);
+  }, [toast, selectedTournament]);
 
   // Function to refresh both scheduled and unscheduled matches
   const refreshMatches = async () => {
+    if (!selectedTournament) return;
+
     try {
       // Fetch unscheduled matches
       const matchesResponse = await axios.get("/api/get-match");
-      
+
       // Process unscheduled matches
-      if (matchesResponse.data && 
-          matchesResponse.data.message !== "No unscheduled matches found." && 
+      if (matchesResponse.data &&
+          matchesResponse.data.message !== "No unscheduled matches found." &&
           matchesResponse.data.message !== "All matches are scheduled.") {
-        
-        const matches = matchesResponse.data as Match[];
+
+        const matches = (matchesResponse.data as Match[]).filter(
+          (match) => match.tournamentId === selectedTournament
+        );
         
         const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
           const key = `${match.round}-${match.roundType}`;
@@ -369,9 +397,11 @@ export default function CalendarPage() {
 
       // Fetch scheduled matches
       const scheduledMatchesResponse = await axios.get("/api/get-all-scheduled-matches");
-      
+
       if (scheduledMatchesResponse.data && scheduledMatchesResponse.data.success) {
-        const scheduledMatchesData = scheduledMatchesResponse.data.data;
+        const scheduledMatchesData = scheduledMatchesResponse.data.data.filter(
+          (match: any) => match.tournamentId === selectedTournament
+        );
         
         const scheduled = scheduledMatchesData.map((match: any) => ({
           id: match._id,
@@ -483,8 +513,36 @@ export default function CalendarPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="h-screen flex flex-col md:flex-row">
-        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 h-[40vh] md:h-screen">
+      <div className="h-screen flex flex-col">
+        {/* Tournament Selector Header */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">Calendar</h1>
+            <Select
+              value={selectedTournament}
+              onValueChange={setSelectedTournament}
+            >
+              <SelectTrigger className="w-full sm:w-[250px] bg-white/5 border-white/10 text-white">
+                <SelectValue placeholder="Select tournament" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-white/10">
+                {tournaments.map((tournament) => (
+                  <SelectItem
+                    key={tournament._id}
+                    value={tournament._id}
+                    className="text-white hover:bg-white/5"
+                  >
+                    {tournament.tournamentName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 h-[40vh] md:h-full">
           <div className="p-4 space-y-4 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-white/5">
             <h3 className="text-lg font-semibold text-white">
               Unscheduled Matches
@@ -513,10 +571,9 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="flex-1 h-[60vh] md:h-screen overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <div className="p-6 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className=" text-lg  xl:text-3xl font-bold text-white">Calendar</h1>
+            <div className="flex justify-end items-center mb-6">
               <Button
                 onClick={() => setIsEditing(!isEditing)}
                 variant={isEditing ? "default" : "outline"}
@@ -540,6 +597,7 @@ export default function CalendarPage() {
               />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </DndProvider>
