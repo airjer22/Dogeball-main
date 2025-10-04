@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "tsx scripts/migrate-to-supabase.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -77,6 +78,7 @@
     "@types/node": "^20.6.2",
     "@types/react": "^18.2.22",
     "@types/react-big-calendar": "^1.8.9",
-    "@types/react-dom": "^18.2.7"
+    "@types/react-dom": "^18.2.7",
+    "tsx": "^4.20.6"
   }
 }
