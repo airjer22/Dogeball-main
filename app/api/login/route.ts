@@ -1,11 +1,17 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import dbConnect from "@/lib/dbConnect";
+import User from "@/app/models/User";
 import jwt from "jsonwebtoken";
+import { initializeDatabase } from "@/lib/initDb";
 
 export async function POST(req: Request) {
   try {
+    await dbConnect();
+
+    await initializeDatabase();
+
     const { email, password } = await req.json();
 
     if (!email || !password) {
@@ -21,26 +27,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
-
-    if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json(
-        { success: false, message: "Database error occurred." },
-        {
-          status: 500,
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        }
-      );
-    }
-
+    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
     if (!user || user.password !== password) {
       return NextResponse.json(
         { success: false, message: "Invalid email or password." },
@@ -55,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "7d" }
     );
@@ -63,7 +50,7 @@ export async function POST(req: Request) {
     const response = NextResponse.json(
       {
         success: true,
-        user: { id: user.id, email: user.email, role: user.role },
+        user: { id: user._id, email: user.email, role: user.role },
       },
       {
         headers: {
