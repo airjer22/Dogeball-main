@@ -105,7 +105,7 @@ export default function LoginPage() {
               className="w-full border-white/10 text-black bg-white hover:bg-white/90"
               onClick={handleGuestLogin}
             >
-              Continue as Guest
+              Student Login
             </Button>
           </div>
         </form>

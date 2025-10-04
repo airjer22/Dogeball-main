@@ -46,6 +46,7 @@ const ScheduledMatchSchema = new Schema({
     enum: ['scheduled', 'in_progress', 'completed'],
     default: 'scheduled'
   },
+<<<<<<< HEAD
   scores: {
     homeScore: {
       type: Number,
@@ -63,6 +64,23 @@ const ScheduledMatchSchema = new Schema({
       type: Number,
       default: 0
     }
+=======
+  homeScore: {
+    type: Number,
+    default: 0
+  },
+  awayScore: {
+    type: Number,
+    default: 0
+  },
+  homePins: {
+    type: Number,
+    default: 0
+  },
+  awayPins: {
+    type: Number,
+    default: 0
+>>>>>>> Refinement-Branch
   }
 }, { timestamps: true });
 
