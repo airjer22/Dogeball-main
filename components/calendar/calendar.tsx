@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { TimePickerModal } from "./time-picker-modal";
 import { MatchScoringModal } from "./match-scoring-modal";
 import { EditMatchModal } from "./edit-match-modal";
+import { CompletedMatchModal } from "./completed-match-modal";
 import { useToast } from "@/hooks/use-toast";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -89,6 +90,11 @@ export function Calendar({
     match: null as any,
   });
 
+  const [completedMatchState, setCompletedMatchState] = useState({
+    isOpen: false,
+    match: null as any,
+  });
+
 
   // We don't need to fetch scheduled matches anymore as they're passed via props
   // But we'll keep the state for internal use
@@ -154,10 +160,25 @@ export function Calendar({
         isOpen: true,
         match: matchData,
       });
-    } else if (event.status !== "completed") {
+    } else if (event.status === "completed") {
+      // If the match is completed, open the completed match modal
+      const matchData = {
+        id: event.id,
+        homeTeam: event.homeTeam.name,
+        awayTeam: event.awayTeam.name,
+        homeTeamPhoto: event.homeTeam.photo,
+        awayTeamPhoto: event.awayTeam.photo,
+        start: event.start,
+      };
+
+      setCompletedMatchState({
+        isOpen: true,
+        match: matchData,
+      });
+    } else {
       // If the match is not completed and not a special match type, allow scoring
-      if (event.matchType === 'quarterfinal' || 
-          event.matchType === 'semifinal' || 
+      if (event.matchType === 'quarterfinal' ||
+          event.matchType === 'semifinal' ||
           event.matchType === 'final') {
         toast({
           title: "Score Update Restricted",
@@ -456,6 +477,21 @@ export function Calendar({
             }
           };
           fetchScheduledMatches();
+        }}
+      />
+
+      <CompletedMatchModal
+        open={completedMatchState.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCompletedMatchState({ isOpen: false, match: null });
+          }
+        }}
+        match={completedMatchState.match}
+        onScoreUpdated={() => {
+          if (onMatchUpdated) {
+            onMatchUpdated();
+          }
         }}
       />
     </>
