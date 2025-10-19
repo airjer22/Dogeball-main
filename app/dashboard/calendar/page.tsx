@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/calendar/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil as PencilIcon, Search, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Pencil as PencilIcon, Search, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { AddCustomMatchDialog } from "@/components/calendar/add-custom-match-dialog";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDrag } from "react-dnd";
@@ -214,6 +215,7 @@ export default function CalendarPage() {
   const [hasTournaments, setHasTournaments] = useState(false);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>("");
+  const [isCustomMatchDialogOpen, setIsCustomMatchDialogOpen] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -573,7 +575,15 @@ export default function CalendarPage() {
 
         <div className="flex-1 overflow-hidden">
           <div className="p-6 h-full flex flex-col">
-            <div className="flex justify-end items-center mb-6">
+            <div className="flex justify-end items-center gap-3 mb-6">
+              <Button
+                onClick={() => setIsCustomMatchDialogOpen(true)}
+                variant="outline"
+                className="bg-green-600 hover:bg-green-700 text-white border-green-600 text-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom Match
+              </Button>
               <Button
                 onClick={() => setIsEditing(!isEditing)}
                 variant={isEditing ? "default" : "outline"}
@@ -600,6 +610,13 @@ export default function CalendarPage() {
         </div>
         </div>
       </div>
+
+      <AddCustomMatchDialog
+        isOpen={isCustomMatchDialogOpen}
+        onClose={() => setIsCustomMatchDialogOpen(false)}
+        tournamentId={selectedTournament}
+        onMatchAdded={refreshMatches}
+      />
     </DndProvider>
   );
 }
