@@ -169,7 +169,7 @@ export function TournamentCalendar() {
         <CardTitle className="text-lg md:text-xl text-white">Tournament Calendar</CardTitle>
       </CardHeader>
       <CardContent className="p-2 sm:p-4 md:p-6">
-        <div className="h-[600px]  md:h-[700px]">
+        <div className="min-h-[600px] h-[600px] md:h-[700px]">
           <style jsx global>{`
             .calendar-dark {
               color: white;
