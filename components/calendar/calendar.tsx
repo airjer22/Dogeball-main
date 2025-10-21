@@ -289,7 +289,7 @@ export function Calendar({
           }
         }}
         className={cn(
-          "h-[calc(100vh-10rem)] md:h-[calc(100vh-10rem)] bg-white/5 rounded-lg p-2 md:p-4",
+          "min-h-[600px] h-full bg-white/5 rounded-lg p-2 md:p-4",
           isEditing && "cursor-copy",
           isOver && "ring-2 ring-blue-500/50"
         )}

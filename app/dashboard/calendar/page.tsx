@@ -515,7 +515,7 @@ export default function CalendarPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col">
         {/* Tournament Selector Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
@@ -543,8 +543,8 @@ export default function CalendarPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 h-[40vh] md:h-full">
+        <div className="flex-1 flex flex-col md:flex-row">
+        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 h-[40vh] md:min-h-[600px] overflow-y-auto">
           <div className="p-4 space-y-4 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-white/5">
             <h3 className="text-lg font-semibold text-white">
               Unscheduled Matches
@@ -573,8 +573,8 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <div className="p-6 h-full flex flex-col">
+        <div className="flex-1">
+          <div className="p-6 flex flex-col">
             <div className="flex justify-end items-center gap-3 mb-6">
               <Button
                 onClick={() => setIsCustomMatchDialogOpen(true)}
@@ -598,7 +598,7 @@ export default function CalendarPage() {
                 {isEditing ? "Done Editing" : "Edit Calendar"}
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto lg:overflow-visible scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-white/5">
+            <div className="min-h-[600px]">
               <Calendar
                 events={scheduledMatches}
                 isEditing={isEditing}
