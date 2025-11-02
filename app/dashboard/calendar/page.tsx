@@ -20,6 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Types and Interfaces
 export type RoundType = "regular" | "quarterFinal" | "semiFinal" | "final";
@@ -216,6 +226,8 @@ export default function CalendarPage() {
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>("");
   const [isCustomMatchDialogOpen, setIsCustomMatchDialogOpen] = useState<boolean>(false);
+  const [isEndRoundRobinDialogOpen, setIsEndRoundRobinDialogOpen] = useState<boolean>(false);
+  const [isEndingRoundRobin, setIsEndingRoundRobin] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -513,6 +525,44 @@ export default function CalendarPage() {
     refreshMatches();
   };
 
+  // Function to handle ending round robin
+  const handleEndRoundRobin = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      setIsEndingRoundRobin(true);
+      const response = await axios.post('/api/end-round-robin', {
+        tournamentId: selectedTournament
+      });
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: response.data.message || "Round robin ended and bracket created successfully"
+        });
+        
+        // Refresh matches to show new quarter-final matches
+        await refreshMatches();
+      } else {
+        toast({
+          title: "Error",
+          description: response.data.message || "Failed to end round robin",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Error ending round robin:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to end round robin",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEndingRoundRobin(false);
+      setIsEndRoundRobinDialogOpen(false);
+    }
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen flex flex-col">
@@ -577,6 +627,21 @@ export default function CalendarPage() {
           <div className="p-6 flex flex-col">
             <div className="flex justify-end items-center gap-3 mb-6">
               <Button
+                onClick={() => setIsEndRoundRobinDialogOpen(true)}
+                variant="outline"
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 text-sm"
+                disabled={isEndingRoundRobin}
+              >
+                {isEndingRoundRobin ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Ending...
+                  </>
+                ) : (
+                  "End Round Robin"
+                )}
+              </Button>
+              <Button
                 onClick={() => setIsCustomMatchDialogOpen(true)}
                 variant="outline"
                 className="bg-green-600 hover:bg-green-700 text-white border-green-600 text-sm"
@@ -617,6 +682,32 @@ export default function CalendarPage() {
         tournamentId={selectedTournament}
         onMatchAdded={refreshMatches}
       />
+
+      <AlertDialog open={isEndRoundRobinDialogOpen} onOpenChange={setIsEndRoundRobinDialogOpen}>
+        <AlertDialogContent className="bg-gray-900 border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">End Round Robin</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This will end the round robin phase and create a bracket with the top 8 teams based on current standings. 
+              All remaining unscheduled round robin matches will be cancelled and deleted. This action cannot be undone.
+              <br /><br />
+              Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 text-white border-white/10 hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEndRoundRobin}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isEndingRoundRobin}
+            >
+              {isEndingRoundRobin ? "Ending..." : "Yes, End Round Robin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndProvider>
   );
 }
