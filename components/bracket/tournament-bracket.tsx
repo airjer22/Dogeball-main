@@ -151,6 +151,7 @@ export function TournamentBracket({
   const [matches, setMatches] = useState<Match[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [totalTeams, setTotalTeams] = useState<number>(0);
+  const [scheduledMatchIds, setScheduledMatchIds] = useState<Set<string>>(new Set());
   const [scheduleDialog, setScheduleDialog] = useState<ScheduleDialogState>({
     isOpen: false,
     match: null,
@@ -200,6 +201,38 @@ export function TournamentBracket({
     });
     return { totalTeams: teamsInMatches.size };
   };
+
+  // Fetch scheduled matches for this tournament
+  useEffect(() => {
+    const fetchScheduledMatches = async () => {
+      if (!tournamentId) return;
+
+      try {
+        const response = await axios.get('/api/get-all-scheduled-matches');
+        if (response.data.success) {
+          const tournamentScheduledMatches = response.data.data.filter(
+            (match: any) => match.tournamentId === tournamentId
+          );
+          
+          // Create a set of team ID pairs that have been scheduled
+          const scheduledIds = new Set<string>();
+          tournamentScheduledMatches.forEach((match: any) => {
+            const homeId = match.homeTeamId._id || match.homeTeamId;
+            const awayId = match.awayTeamId._id || match.awayTeamId;
+            // Create a unique key from both team IDs (sorted to handle either order)
+            const key = [homeId, awayId].sort().join('-');
+            scheduledIds.add(key);
+          });
+          
+          setScheduledMatchIds(scheduledIds);
+        }
+      } catch (error) {
+        console.error('Error fetching scheduled matches:', error);
+      }
+    };
+
+    fetchScheduledMatches();
+  }, [tournamentId]);
 
   // Fetch bracket data
   useEffect(() => {
@@ -433,6 +466,12 @@ export function TournamentBracket({
       });
 
       if (response.data.success) {
+        // Update the scheduled matches set
+        if (match.homeTeam && match.awayTeam) {
+          const key = [match.homeTeam.id, match.awayTeam.id].sort().join('-');
+          setScheduledMatchIds(prev => new Set(prev).add(key));
+        }
+        
         toast({
           title: "Success",
           description: "Match scheduled successfully"
@@ -451,6 +490,13 @@ export function TournamentBracket({
         variant: "destructive"
       });
     }
+  };
+
+  // Helper function to check if a match is scheduled
+  const isMatchScheduled = (match: Match): boolean => {
+    if (!match.homeTeam || !match.awayTeam) return false;
+    const key = [match.homeTeam.id, match.awayTeam.id].sort().join('-');
+    return scheduledMatchIds.has(key);
   };
 
   if (error) {
@@ -548,10 +594,15 @@ export function TournamentBracket({
                       size="sm"
                       variant="outline"
                       onClick={(e) => handleScheduleClick(match, e)}
-                      className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 text-xs px-2 py-1 h-6"
+                      className={cn(
+                        "absolute -bottom-2 left-1/2 -translate-x-1/2 text-white text-xs px-2 py-1 h-6",
+                        isMatchScheduled(match)
+                          ? "bg-green-600 hover:bg-green-700 border-green-600 cursor-pointer"
+                          : "bg-blue-600 hover:bg-blue-700 border-blue-600 cursor-pointer"
+                      )}
                     >
                       <Calendar className="h-3 w-3 mr-1" />
-                      Schedule
+                      {isMatchScheduled(match) ? "Scheduled" : "Schedule"}
                     </Button>
                   )}
                 </div>
