@@ -222,9 +222,17 @@ export function TournamentBracket({
             const round = match.round;
             // Create a unique key from both team IDs (sorted to handle either order) plus round
             const key = `${[homeId, awayId].sort().join('-')}-R${round}`;
+            console.log('Scheduled match key:', key, 'from match:', {
+              homeId,
+              awayId,
+              round,
+              homeTeam: match.homeTeamId.teamName,
+              awayTeam: match.awayTeamId.teamName
+            });
             scheduledIds.add(key);
           });
           
+          console.log('All scheduled match IDs:', Array.from(scheduledIds));
           setScheduledMatchIds(scheduledIds);
         }
       } catch (error) {
@@ -497,6 +505,13 @@ export function TournamentBracket({
   const isMatchScheduled = (match: Match): boolean => {
     if (!match.homeTeam || !match.awayTeam) return false;
     const key = `${[match.homeTeam.id, match.awayTeam.id].sort().join('-')}-R${match.round}`;
+    console.log('Checking match key:', key, 'for match:', {
+      homeTeam: match.homeTeam.name,
+      awayTeam: match.awayTeam.name,
+      round: match.round,
+      homeId: match.homeTeam.id,
+      awayId: match.awayTeam.id
+    }, 'Is scheduled:', scheduledMatchIds.has(key));
     return scheduledMatchIds.has(key);
   };
 
