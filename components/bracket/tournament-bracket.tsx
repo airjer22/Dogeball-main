@@ -4,6 +4,17 @@ import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 // Constants for match configurations based on tournament stage
 const MATCHUP_CONFIGS = {
@@ -80,6 +91,13 @@ interface TournamentBracketProps {
   roundStatuses?: boolean[];
 }
 
+interface ScheduleDialogState {
+  isOpen: boolean;
+  match: Match | null;
+  date: string;
+  time: string;
+}
+
 // Helper Components
 const NoTeamsState = () => (
   <div className="flex flex-col items-center justify-center h-[79vh]">
@@ -133,6 +151,14 @@ export function TournamentBracket({
   const [matches, setMatches] = useState<Match[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [totalTeams, setTotalTeams] = useState<number>(0);
+  const [scheduledMatchIds, setScheduledMatchIds] = useState<Set<string>>(new Set());
+  const [scheduleDialog, setScheduleDialog] = useState<ScheduleDialogState>({
+    isOpen: false,
+    match: null,
+    date: new Date().toISOString().split('T')[0],
+    time: '19:00'
+  });
+  const { toast } = useToast();
 
   // Helper function to check round completion
   const isRoundCompleted = (round: number, matches: Match[]): boolean => {
@@ -175,6 +201,43 @@ export function TournamentBracket({
     });
     return { totalTeams: teamsInMatches.size };
   };
+
+  // Fetch scheduled matches for this tournament
+  useEffect(() => {
+    const fetchScheduledMatches = async () => {
+      if (!tournamentId) return;
+
+      try {
+        const response = await axios.get('/api/get-all-scheduled-matches');
+        if (response.data.success) {
+          // Filter for only bracket matches (those with matchType) for this tournament
+          const tournamentScheduledMatches = response.data.data.filter(
+            (match: any) => 
+              match.tournamentId === tournamentId &&
+              match.matchType && // Only include matches with matchType (bracket matches)
+              ['quarterfinal', 'semifinal', 'final'].includes(match.matchType)
+          );
+          
+          // Create a set of team ID pairs with round that have been scheduled
+          const scheduledIds = new Set<string>();
+          tournamentScheduledMatches.forEach((match: any) => {
+            const homeId = match.homeTeamId._id || match.homeTeamId;
+            const awayId = match.awayTeamId._id || match.awayTeamId;
+            const round = match.round;
+            // Create a unique key from both team IDs (sorted to handle either order) plus round
+            const key = `${[homeId, awayId].sort().join('-')}-R${round}`;
+            scheduledIds.add(key);
+          });
+          
+          setScheduledMatchIds(scheduledIds);
+        }
+      } catch (error) {
+        console.error('Error fetching scheduled matches:', error);
+      }
+    };
+
+    fetchScheduledMatches();
+  }, [tournamentId]);
 
   // Fetch bracket data
   useEffect(() => {
@@ -373,6 +436,74 @@ export function TournamentBracket({
       }));
   }, [matches]);
 
+  const handleScheduleClick = (match: Match, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScheduleDialog({
+      isOpen: true,
+      match,
+      date: new Date().toISOString().split('T')[0],
+      time: '19:00'
+    });
+  };
+
+  const handleScheduleSubmit = async () => {
+    if (!scheduleDialog.match || !tournamentId) return;
+
+    try {
+      const [hours, minutes] = scheduleDialog.time.split(':');
+      const scheduledDate = new Date(scheduleDialog.date);
+      scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      const match = scheduleDialog.match;
+      const matchType = match.round === 1 ? 'quarterfinal' : 
+                       match.round === 2 ? 'semifinal' : 'final';
+
+      // We need to find the actual Match document ID from the database
+      // For now, we'll create the scheduled match with the bracket match data
+      const response = await axios.post('/api/schedule-match', {
+        matchId: match.id, // This might need to be looked up
+        homeTeamId: match.homeTeam?.id,
+        awayTeamId: match.awayTeam?.id,
+        scheduledDate: scheduledDate.toISOString(),
+        tournamentId,
+        round: match.round,
+        matchType
+      });
+
+      if (response.data.success) {
+        // Update the scheduled matches set with round information
+        if (match.homeTeam && match.awayTeam) {
+          const key = `${[match.homeTeam.id, match.awayTeam.id].sort().join('-')}-R${match.round}`;
+          setScheduledMatchIds(prev => new Set(prev).add(key));
+        }
+        
+        toast({
+          title: "Success",
+          description: "Match scheduled successfully"
+        });
+        setScheduleDialog({
+          isOpen: false,
+          match: null,
+          date: new Date().toISOString().split('T')[0],
+          time: '19:00'
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to schedule match",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Helper function to check if a match is scheduled
+  const isMatchScheduled = (match: Match): boolean => {
+    if (!match.homeTeam || !match.awayTeam) return false;
+    const key = `${[match.homeTeam.id, match.awayTeam.id].sort().join('-')}-R${match.round}`;
+    return scheduledMatchIds.has(key);
+  };
+
   if (error) {
     return <NoTeamsState />;
   }
@@ -395,77 +526,165 @@ export function TournamentBracket({
                   "after:absolute after:top-[calc(100%+1rem)] after:left-1/2 after:w-px after:h-16 after:bg-white/10"
                 )}
               >
-                <button
-                  onClick={() => onMatchClick(match)}
-                  disabled={!match.isPlayable || match.isCompleted}
-                  className={cn(
-                    "w-full text-left rounded-lg border transition-colors",
-                    match.isPlayable && !match.isCompleted
-                      ? "cursor-pointer hover:border-blue-500/50 hover:bg-white/5"
-                      : "cursor-not-allowed opacity-50",
-                    match.isCompleted
-                      ? "bg-green-500/10 border-green-500/20"
-                      : "bg-white/5 border-white/10"
-                  )}
-                >
-                  {/* Home Team */}
-                  {/* Home Team */}
-                  <div
+                <div className="relative">
+                  <button
+                    onClick={() => onMatchClick(match)}
+                    disabled={!match.isPlayable || match.isCompleted}
                     className={cn(
-                      "flex items-center gap-3 p-3 border-b",
-                      match.winner === "home" 
-                        ? "border-green-500/20"
-                        : "border-white/10"
+                      "w-full text-left rounded-lg border transition-colors",
+                      match.isPlayable && !match.isCompleted
+                        ? "cursor-pointer hover:border-blue-500/50 hover:bg-white/5"
+                        : "cursor-not-allowed opacity-50",
+                      match.isCompleted
+                        ? "bg-green-500/10 border-green-500/20"
+                        : "bg-white/5 border-white/10"
                     )}
                   >
-                    <div className="w-6 text-sm text-gray-400">
-                      {match.homeTeam?.seed || "-"}
-                    </div>
-                    <div className="flex-1 font-medium text-white">
-                      {match.homeTeam?.name || "TBD"}
-                    </div>
+                    {/* Home Team */}
                     <div
                       className={cn(
-                        "w-6 text-right",
-                        match.winner === "home"
-                          ? "text-green-500 font-bold"
-                          : "text-white"
+                        "flex items-center gap-3 p-3 border-b",
+                        match.winner === "home" 
+                          ? "border-green-500/20"
+                          : "border-white/10"
                       )}
                     >
-                      {match.homeTeam?.score ?? "-"}
+                      <div className="w-6 text-sm text-gray-400">
+                        {match.homeTeam?.seed || "-"}
+                      </div>
+                      <div className="flex-1 font-medium text-white">
+                        {match.homeTeam?.name || "TBD"}
+                      </div>
+                      <div
+                        className={cn(
+                          "w-6 text-right",
+                          match.winner === "home"
+                            ? "text-green-500 font-bold"
+                            : "text-white"
+                        )}
+                      >
+                        {match.homeTeam?.score ?? "-"}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Away Team */}
-                  <div
-                    className={cn(
-                      "flex items-center gap-3 p-3",
-                      match.winner === "away" && "bg-green-500/5"
-                    )}
-                  >
-                    <div className="w-6 text-sm text-gray-400">
-                      {match.awayTeam?.seed || "-"}
-                    </div>
-                    <div className="flex-1 font-medium text-white">
-                      {match.awayTeam?.name || "TBD"}
-                    </div>
+                    {/* Away Team */}
                     <div
                       className={cn(
-                        "w-6 text-right",
-                        match.winner === "away"
-                          ? "text-green-500 font-bold"
-                          : "text-white"
+                        "flex items-center gap-3 p-3",
+                        match.winner === "away" && "bg-green-500/5"
                       )}
                     >
-                      {match.awayTeam?.score ?? "-"}
+                      <div className="w-6 text-sm text-gray-400">
+                        {match.awayTeam?.seed || "-"}
+                      </div>
+                      <div className="flex-1 font-medium text-white">
+                        {match.awayTeam?.name || "TBD"}
+                      </div>
+                      <div
+                        className={cn(
+                          "w-6 text-right",
+                          match.winner === "away"
+                            ? "text-green-500 font-bold"
+                            : "text-white"
+                        )}
+                      >
+                        {match.awayTeam?.score ?? "-"}
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  
+                  {/* Schedule Button */}
+                  {!match.isCompleted && match.homeTeam && match.awayTeam && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleScheduleClick(match, e)}
+                      className={cn(
+                        "absolute -bottom-2 left-1/2 -translate-x-1/2 text-white text-xs px-2 py-1 h-6",
+                        isMatchScheduled(match)
+                          ? "bg-green-600 hover:bg-green-700 border-green-600 cursor-pointer"
+                          : "bg-blue-600 hover:bg-blue-700 border-blue-600 cursor-pointer"
+                      )}
+                    >
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {isMatchScheduled(match) ? "Scheduled" : "Schedule"}
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
       ))}
+      
+      {/* Schedule Dialog */}
+      <Dialog open={scheduleDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setScheduleDialog({
+            isOpen: false,
+            match: null,
+            date: new Date().toISOString().split('T')[0],
+            time: '19:00'
+          });
+        }
+      }}>
+        <DialogContent className="bg-gray-900 border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle>Schedule Match to Calendar</DialogTitle>
+          </DialogHeader>
+          
+          {scheduleDialog.match && (
+            <div className="space-y-4 py-4">
+              <div className="text-center text-gray-400">
+                {scheduleDialog.match.homeTeam?.name} vs {scheduleDialog.match.awayTeam?.name}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={scheduleDialog.date}
+                  onChange={(e) => setScheduleDialog(prev => ({ ...prev, date: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={scheduleDialog.time}
+                  onChange={(e) => setScheduleDialog(prev => ({ ...prev, time: e.target.value }))}
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setScheduleDialog({
+                    isOpen: false,
+                    match: null,
+                    date: new Date().toISOString().split('T')[0],
+                    time: '19:00'
+                  })}
+                  className="border-white/10 bg-white text-black hover:bg-white/90"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleScheduleSubmit}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Schedule Match
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
