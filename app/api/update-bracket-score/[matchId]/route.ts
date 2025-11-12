@@ -264,8 +264,33 @@ export async function PUT(
       );
     }
 
-    // Determine winner and loser
-    const isHomeWinner = matchData.homeScore > matchData.awayScore;
+    // Determine winner and loser with pin-based tiebreaker
+    let isHomeWinner: boolean;
+    let winReason: string;
+
+    if (matchData.homeScore > matchData.awayScore) {
+      isHomeWinner = true;
+      winReason = 'score';
+    } else if (matchData.awayScore > matchData.homeScore) {
+      isHomeWinner = false;
+      winReason = 'score';
+    } else {
+      // Tied on score - use pins as tiebreaker
+      if (matchData.homePins > matchData.awayPins) {
+        isHomeWinner = true;
+        winReason = 'pins';
+      } else if (matchData.awayPins > matchData.homePins) {
+        isHomeWinner = false;
+        winReason = 'pins';
+      } else {
+        // Still tied - should not happen with overtime rules
+        return Response.json({
+          success: false,
+          message: 'Match cannot end in a tie. If scores are equal, play overtime until a pin is scored.'
+        }, { status: 400 });
+      }
+    }
+
     const winner = isHomeWinner ? homeTeam : awayTeam;
     const loser = isHomeWinner ? awayTeam : homeTeam;
 

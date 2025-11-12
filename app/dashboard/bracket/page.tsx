@@ -58,6 +58,8 @@ export interface Match {
 interface ScoreSubmission {
   homeScore: number;
   awayScore: number;
+  homePins: number;
+  awayPins: number;
 }
 
 const LoadingState = () => (
@@ -172,8 +174,8 @@ export default function BracketPage() {
           awayTeam: selectedMatch.awayTeam,
           homeScore: scores.homeScore,
           awayScore: scores.awayScore,
-          homePins: 0,
-          awayPins: 0,
+          homePins: scores.homePins,
+          awayPins: scores.awayPins,
         }
       );
 

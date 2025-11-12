@@ -53,11 +53,34 @@ export async function POST(req: Request) {
         }
 
         // Find and update original match status
-        const originalMatch = await Match.findByIdAndUpdate(
-            matchId,
-            { status: 'scheduled' },
-            { new: true }
-        );
+        // For bracket matches, the matchId might be a string like "R1M1", so we need to find by other criteria
+        let originalMatch;
+        
+        // Try to find by MongoDB _id first
+        try {
+            originalMatch = await Match.findByIdAndUpdate(
+                matchId,
+                { status: 'scheduled' },
+                { new: true }
+            );
+        } catch (err) {
+            // If matchId is not a valid MongoDB ObjectId, search by other criteria
+            originalMatch = null;
+        }
+        
+        // If not found by ID, try to find by tournament, teams, and round
+        if (!originalMatch) {
+            originalMatch = await Match.findOneAndUpdate(
+                {
+                    tournamentId,
+                    homeTeamId,
+                    awayTeamId,
+                    round
+                },
+                { status: 'scheduled' },
+                { new: true }
+            );
+        }
 
         if (!originalMatch) {
             return Response.json(

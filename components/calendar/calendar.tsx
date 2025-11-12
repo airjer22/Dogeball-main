@@ -112,7 +112,33 @@ export function Calendar({
   }) => {
     if (scoringState.match) {
       try {
-        const response = await axios.put(`/api/update-match-score/${scoringState.match.id}`, scores);
+        // Check if this is a bracket match
+        const isBracketMatch = scoringState.match.matchType === 'quarterfinal' ||
+                               scoringState.match.matchType === 'semifinal' ||
+                               scoringState.match.matchType === 'final';
+        
+        let response;
+        
+        if (isBracketMatch) {
+          // For bracket matches, use the bracket scoring API
+          response = await axios.put(`/api/update-bracket-score/${scoringState.match.id}`, {
+            homeTeam: {
+              id: scoringState.match.homeTeamId,
+              name: scoringState.match.homeTeam
+            },
+            awayTeam: {
+              id: scoringState.match.awayTeamId,
+              name: scoringState.match.awayTeam
+            },
+            homeScore: scores.homeScore,
+            awayScore: scores.awayScore,
+            homePins: scores.homePins,
+            awayPins: scores.awayPins,
+          });
+        } else {
+          // For regular matches, use the standard scoring API
+          response = await axios.put(`/api/update-match-score/${scoringState.match.id}`, scores);
+        }
         
         if (response.data.success) {
           setScheduledMatches((prev) =>
@@ -128,13 +154,20 @@ export function Calendar({
 
           toast({
             title: "Success",
-            description: "Match score updated successfully",
+            description: isBracketMatch 
+              ? "Bracket match score updated successfully" 
+              : "Match score updated successfully",
           });
+          
+          // Call onMatchUpdated to refresh the parent
+          if (onMatchUpdated) {
+            onMatchUpdated();
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: "Failed to update match score",
+          description: error.response?.data?.message || "Failed to update match score",
           variant: "destructive",
         });
       }
@@ -176,22 +209,13 @@ export function Calendar({
         match: matchData,
       });
     } else {
-      // If the match is not completed and not a special match type, allow scoring
-      if (event.matchType === 'quarterfinal' ||
-          event.matchType === 'semifinal' ||
-          event.matchType === 'final') {
-        toast({
-          title: "Score Update Restricted",
-          description: "Please update the score in the tournament bracket section",
-          variant: 'destructive'
-        });
-        return;
-      }
-
+      // Allow scoring for all matches (including bracket matches)
       const matchData = {
         id: event.id,
         homeTeam: event.homeTeam.name,
         awayTeam: event.awayTeam.name,
+        homeTeamId: event.homeTeam.id,
+        awayTeamId: event.awayTeam.id,
         homeTeamPhoto: event.homeTeam.photo,
         awayTeamPhoto: event.awayTeam.photo,
         start: event.start,
