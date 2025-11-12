@@ -214,13 +214,14 @@ export function TournamentBracket({
             (match: any) => match.tournamentId === tournamentId
           );
           
-          // Create a set of team ID pairs that have been scheduled
+          // Create a set of team ID pairs with round that have been scheduled
           const scheduledIds = new Set<string>();
           tournamentScheduledMatches.forEach((match: any) => {
             const homeId = match.homeTeamId._id || match.homeTeamId;
             const awayId = match.awayTeamId._id || match.awayTeamId;
-            // Create a unique key from both team IDs (sorted to handle either order)
-            const key = [homeId, awayId].sort().join('-');
+            const round = match.round;
+            // Create a unique key from both team IDs (sorted to handle either order) plus round
+            const key = `${[homeId, awayId].sort().join('-')}-R${round}`;
             scheduledIds.add(key);
           });
           
@@ -466,9 +467,9 @@ export function TournamentBracket({
       });
 
       if (response.data.success) {
-        // Update the scheduled matches set
+        // Update the scheduled matches set with round information
         if (match.homeTeam && match.awayTeam) {
-          const key = [match.homeTeam.id, match.awayTeam.id].sort().join('-');
+          const key = `${[match.homeTeam.id, match.awayTeam.id].sort().join('-')}-R${match.round}`;
           setScheduledMatchIds(prev => new Set(prev).add(key));
         }
         
@@ -495,7 +496,7 @@ export function TournamentBracket({
   // Helper function to check if a match is scheduled
   const isMatchScheduled = (match: Match): boolean => {
     if (!match.homeTeam || !match.awayTeam) return false;
-    const key = [match.homeTeam.id, match.awayTeam.id].sort().join('-');
+    const key = `${[match.homeTeam.id, match.awayTeam.id].sort().join('-')}-R${match.round}`;
     return scheduledMatchIds.has(key);
   };
 
