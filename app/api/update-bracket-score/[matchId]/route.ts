@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 
 import dbConnect from "@/lib/dbConnect";
 import BracketTeamModel, { TournamentStage } from '@/app/models/BracketTeam';
-import TeamModel from '@/app/models/Team';
 import Match from '@/app/models/Match';
 import ScheduledMatch from '@/app/models/ScheduledMatch';
 import Tournament from '@/app/models/Tournament';
@@ -85,7 +84,8 @@ function getStageProgression(stage: TournamentStage): StageProgression {
   }
 }
 
-// Function to update both team statistics and match history
+// Function to update bracket team statistics and match history
+// NOTE: This does NOT update main team standings - those are finalized after round robin
 async function updateTeamStats(
   team: any,
   opponent: any,
@@ -115,21 +115,8 @@ async function updateTeamStats(
   };
 
   // Update bracket team while preserving in database
+  // Bracket games do NOT update main team standings
   await BracketTeamModel.findByIdAndUpdate(team._id, updateData);
-
-  // Update main team statistics
-  await TeamModel.findByIdAndUpdate(
-    team.originalTeamId,
-    {
-      $inc: {
-        wins: isWinner ? 1 : 0,
-        losses: isWinner ? 0 : 1,
-        goalsFor: score,
-        goalsAgainst: opponentScore,
-        pins
-      }
-    }
-  );
 }
 
 // Function to create matches for next tournament stage
