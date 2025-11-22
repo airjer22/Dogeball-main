@@ -131,57 +131,128 @@ async function createNextStageMatches(
   let matches: BracketMatch[] = [];
 
   if (currentStage === TournamentStage.QUARTER_FINALS) {
-    matches = [
-      {
-        tournamentId,
-        round: progression.nextRound!,
-        roundType: 'semiFinal',
-        homeTeam: winners[0].teamName,
-        awayTeam: winners[3].teamName,
-        homeTeamId: winners[0].originalTeamId,
-        awayTeamId: winners[3].originalTeamId,
-        status: 'unscheduled'
-      },
-      {
-        tournamentId,
-        round: progression.nextRound!,
-        roundType: 'semiFinal',
-        homeTeam: winners[1].teamName,
-        awayTeam: winners[2].teamName,
-        homeTeamId: winners[1].originalTeamId,
-        awayTeamId: winners[2].originalTeamId,
-        status: 'unscheduled'
-      }
-    ];
-  } else if (currentStage === TournamentStage.SEMI_FINALS) {
-    matches = [{
+    // Standard bracket progression for quarterfinals to semifinals:
+    // QF matches are played in order: 1v8, 4v5, 3v6, 2v7
+    // Winners advance based on which QF match they won, not their seed
+    // SF1: Winner of QF1 (1v8) vs Winner of QF2 (4v5) 
+    // SF2: Winner of QF3 (3v6) vs Winner of QF4 (2v7)
+    
+    // Get all bracket teams to determine which QF match each winner came from
+    const allBracketTeams = await BracketTeamModel.find({ 
       tournamentId,
-      round: progression.nextRound!,
-      roundType: 'final',
-      homeTeam: winners[0].teamName,
-      awayTeam: winners[1].teamName,
-      homeTeamId: winners[0].originalTeamId,
-      awayTeamId: winners[1].originalTeamId,
-      status: 'unscheduled'
-    }];
+      stage: currentStage
+    }).sort({ position: 1 });
+    
+    // Map to track which QF match each winner came from
+    // QF matches based on original seeding positions:
+    // QF1: positions 1 vs 8, QF2: positions 4 vs 5, QF3: positions 3 vs 6, QF4: positions 2 vs 7
+    const qfMatchMap = new Map<string, number>();
+    allBracketTeams.forEach(team => {
+      if (team.position === 1 || team.position === 8) qfMatchMap.set(team._id.toString(), 1);
+      else if (team.position === 4 || team.position === 5) qfMatchMap.set(team._id.toString(), 2);
+      else if (team.position === 3 || team.position === 6) qfMatchMap.set(team._id.toString(), 3);
+      else if (team.position === 2 || team.position === 7) qfMatchMap.set(team._id.toString(), 4);
+    });
+    
+    // Group winners by their QF match number
+    const winnersByQF = new Map<number, any>();
+    winners.forEach(winner => {
+      const qfMatch = qfMatchMap.get(winner._id.toString());
+      if (qfMatch) {
+        winnersByQF.set(qfMatch, winner);
+      }
+    });
+    
+    // Create semifinals with correct pairings
+    const sf1Home = winnersByQF.get(1); // Winner of QF1 (1v8)
+    const sf1Away = winnersByQF.get(2); // Winner of QF2 (4v5)
+    const sf2Home = winnersByQF.get(3); // Winner of QF3 (3v6)
+    const sf2Away = winnersByQF.get(4); // Winner of QF4 (2v7)
+    
+    if (sf1Home && sf1Away) {
+      matches.push({
+        tournamentId,
+        round: progression.nextRound!,
+        roundType: 'semiFinal',
+        homeTeam: sf1Home.teamName,
+        awayTeam: sf1Away.teamName,
+        homeTeamId: sf1Home.originalTeamId,
+        awayTeamId: sf1Away.originalTeamId,
+        status: 'unscheduled'
+      });
+    }
+    
+    if (sf2Home && sf2Away) {
+      matches.push({
+        tournamentId,
+        round: progression.nextRound!,
+        roundType: 'semiFinal',
+        homeTeam: sf2Home.teamName,
+        awayTeam: sf2Away.teamName,
+        homeTeamId: sf2Home.originalTeamId,
+        awayTeamId: sf2Away.originalTeamId,
+        status: 'unscheduled'
+      });
+    }
+    
+    // Update nextMatchId for each winner based on their QF match
+    await Promise.all(winners.map(async (winner) => {
+      const qfMatch = qfMatchMap.get(winner._id.toString());
+      let nextMatchId = 'R2M1'; // Default to SF1
+      
+      // QF1 and QF2 winners go to SF1, QF3 and QF4 winners go to SF2
+      if (qfMatch && (qfMatch === 3 || qfMatch === 4)) {
+        nextMatchId = 'R2M2';
+      }
+      
+      await BracketTeamModel.findByIdAndUpdate(winner._id, {
+        round: progression.nextRound,
+        stage: progression.nextStage,
+        status: 'incomplete',
+        nextMatchId,
+        score: 0
+      });
+    }));
+    
+  } else if (currentStage === TournamentStage.SEMI_FINALS) {
+    // For semifinals to finals, pair based on which SF match they won
+    // Winner of SF1 vs Winner of SF2
+    const sf1Winner = winners.find(w => {
+      const lastMatch = w.matchHistory[w.matchHistory.length - 1];
+      return lastMatch && lastMatch.round === 2;
+    });
+    
+    const sf2Winner = winners.find(w => w._id.toString() !== sf1Winner?._id.toString());
+    
+    if (sf1Winner && sf2Winner) {
+      matches = [{
+        tournamentId,
+        round: progression.nextRound!,
+        roundType: 'final',
+        homeTeam: sf1Winner.teamName,
+        awayTeam: sf2Winner.teamName,
+        homeTeamId: sf1Winner.originalTeamId,
+        awayTeamId: sf2Winner.originalTeamId,
+        status: 'unscheduled'
+      }];
+    }
+    
+    // Update all advancing teams for finals
+    await Promise.all(winners.map(async (team) => {
+      await BracketTeamModel.findByIdAndUpdate(team._id, {
+        round: progression.nextRound,
+        stage: progression.nextStage,
+        status: 'incomplete',
+        nextMatchId: 'R3M1',
+        score: 0
+      });
+    }));
   }
 
   // Create matches for next stage
   if (matches.length > 0) {
     await Match.create(matches);
   }
-
-  // Update all advancing teams for next stage
-  await Promise.all(winners.map(async (team, index) => {
-    const nextMatchId = `${progression.matchPrefix}${Math.ceil((index + 1) / 2)}`;
-    await BracketTeamModel.findByIdAndUpdate(team._id, {
-      round: progression.nextRound,
-      stage: progression.nextStage,
-      status: 'incomplete',
-      nextMatchId,
-      score: 0
-    });
-  }));
 }
 
 // Function to check if all matches in a stage are completed

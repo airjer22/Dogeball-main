@@ -81,12 +81,73 @@ export async function POST(req: Request) {
                 { new: true }
             );
         }
+        
+        // Also try reverse team order
+        if (!originalMatch) {
+            originalMatch = await Match.findOneAndUpdate(
+                {
+                    tournamentId,
+                    homeTeamId: awayTeamId,
+                    awayTeamId: homeTeamId,
+                    round
+                },
+                { status: 'scheduled' },
+                { new: true }
+            );
+        }
+
+        // If still not found and this is a bracket match, create the Match document
+        if (!originalMatch && matchType) {
+            try {
+                const Team = (await import("@/app/models/Team")).default;
+                const homeTeamDoc = await Team.findById(homeTeamId);
+                const awayTeamDoc = await Team.findById(awayTeamId);
+                
+                if (!homeTeamDoc || !awayTeamDoc) {
+                    return Response.json(
+                        {
+                            success: false,
+                            message: "Teams not found"
+                        }, 
+                        { 
+                            status: 404,
+                            headers: {
+                                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                                'Pragma': 'no-cache'
+                            }
+                        }
+                    );
+                }
+                
+                // Determine roundType based on matchType
+                let roundType: 'quarterFinal' | 'semiFinal' | 'final';
+                if (matchType === 'quarterfinal') roundType = 'quarterFinal';
+                else if (matchType === 'semifinal') roundType = 'semiFinal';
+                else roundType = 'final';
+                
+                // Create the missing Match document
+                originalMatch = await Match.create({
+                    tournamentId,
+                    round,
+                    roundType,
+                    homeTeam: homeTeamDoc.teamName,
+                    awayTeam: awayTeamDoc.teamName,
+                    homeTeamId,
+                    awayTeamId,
+                    status: 'scheduled'
+                });
+                
+                console.log(`Created missing Match document for ${matchType} match`);
+            } catch (createError) {
+                console.error('Error creating Match document:', createError);
+            }
+        }
 
         if (!originalMatch) {
             return Response.json(
                 {
                     success: false,
-                    message: "Match not found"
+                    message: "Match not found and could not be created"
                 }, 
                 { 
                     status: 404,
