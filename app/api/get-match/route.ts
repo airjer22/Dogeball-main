@@ -19,9 +19,15 @@ interface Match extends Document {
 
 export async function GET(req:Request): Promise<Response> {
     try {
-        const matches: Match[] = await MatchModel.find({ 
-            status: "unscheduled" 
-        })
+        const { searchParams } = new URL(req.url);
+        const tournamentId = searchParams.get('tournamentId');
+
+        const query: any = { status: "unscheduled" };
+        if (tournamentId) {
+            query.tournamentId = tournamentId;
+        }
+
+        const matches: Match[] = await MatchModel.find(query)
         .populate("tournamentId")
         .sort({ round: 1 })
         .exec();

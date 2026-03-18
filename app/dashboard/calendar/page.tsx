@@ -241,7 +241,7 @@ export default function CalendarPage() {
         }
 
         // Fetch unscheduled matches
-        const matchesResponse = await axios.get("/api/get-match");
+        const matchesResponse = await axios.get(`/api/get-match?tournamentId=${selectedTournament}`);
 
         // Process unscheduled matches
         if (matchesResponse.data &&
@@ -344,16 +344,14 @@ export default function CalendarPage() {
 
     try {
       // Fetch unscheduled matches
-      const matchesResponse = await axios.get("/api/get-match");
+      const matchesResponse = await axios.get(`/api/get-match?tournamentId=${selectedTournament}`);
 
       // Process unscheduled matches
       if (matchesResponse.data &&
           matchesResponse.data.message !== "No unscheduled matches found." &&
           matchesResponse.data.message !== "All matches are scheduled.") {
 
-        const matches = (matchesResponse.data as Match[]).filter(
-          (match) => match.tournamentId === selectedTournament
-        );
+        const matches = (matchesResponse.data as Match[]);
         
         const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
           const key = `${match.round}-${match.roundType}`;
