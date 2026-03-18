@@ -263,7 +263,7 @@ export default function CalendarPage() {
             matchesResponse.data.message !== "All matches are scheduled.") {
 
           const matches = (matchesResponse.data as Match[]).filter(
-            (match) => match.tournamentId === selectedTournament
+            (match) => match.tournamentId.toString() === selectedTournament
           );
           
           const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
@@ -366,7 +366,7 @@ export default function CalendarPage() {
           matchesResponse.data.message !== "All matches are scheduled.") {
 
         const matches = (matchesResponse.data as Match[]).filter(
-          (match) => match.tournamentId === selectedTournament
+          (match) => match.tournamentId.toString() === selectedTournament
         );
         
         const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
