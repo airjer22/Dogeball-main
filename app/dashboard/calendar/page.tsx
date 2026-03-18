@@ -263,7 +263,13 @@ export default function CalendarPage() {
             matchesResponse.data.message !== "All matches are scheduled.") {
 
           const matches = (matchesResponse.data as Match[]).filter(
-            (match) => match.tournamentId.toString() === selectedTournament
+            (match) => {
+              // tournamentId is populated by the API, so it's an object with _id
+              const tournamentId = typeof match.tournamentId === 'object' && match.tournamentId !== null
+                ? ((match.tournamentId as any)._id?.toString() || String(match.tournamentId))
+                : String(match.tournamentId);
+              return tournamentId === selectedTournament;
+            }
           );
           
           const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
@@ -366,7 +372,13 @@ export default function CalendarPage() {
           matchesResponse.data.message !== "All matches are scheduled.") {
 
         const matches = (matchesResponse.data as Match[]).filter(
-          (match) => match.tournamentId.toString() === selectedTournament
+          (match) => {
+            // tournamentId is populated by the API, so it's an object with _id
+            const tournamentId = typeof match.tournamentId === 'object' && match.tournamentId !== null
+              ? ((match.tournamentId as any)._id?.toString() || String(match.tournamentId))
+              : String(match.tournamentId);
+            return tournamentId === selectedTournament;
+          }
         );
         
         const groupedMatches = matches.reduce<Record<string, RoundGroup>>((groups, match) => {
