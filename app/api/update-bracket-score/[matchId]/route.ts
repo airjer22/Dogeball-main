@@ -298,29 +298,15 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Update scheduled match status
-    const scheduledMatches = await ScheduledMatch.find({
-      tournamentId: homeTeam.tournamentId,
-      $or: [
-        {
-          homeTeamId: new mongoose.Types.ObjectId(matchData.homeTeam.id),
-          awayTeamId: new mongoose.Types.ObjectId(matchData.awayTeam.id)
-        },
-        {
-          homeTeamId: new mongoose.Types.ObjectId(matchData.awayTeam.id),
-          awayTeamId: new mongoose.Types.ObjectId(matchData.homeTeam.id)
-        }
-      ],
-      status: "scheduled"
+    // Store the result on the exact calendar match so completed-match details
+    // can read it back from ScheduledMatch.
+    await ScheduledMatch.findByIdAndUpdate(params.matchId, {
+      status: "completed",
+      homeScore: matchData.homeScore,
+      awayScore: matchData.awayScore,
+      homePins: matchData.homePins,
+      awayPins: matchData.awayPins
     });
-
-    // Mark all scheduled matches as completed
-    if (scheduledMatches.length > 0) {
-      await ScheduledMatch.updateMany(
-        { _id: { $in: scheduledMatches.map(match => match._id) } },
-        { status: "completed" }
-      );
-    }
 
     // Determine winner and loser with pin-based tiebreaker
     let isHomeWinner: boolean;
