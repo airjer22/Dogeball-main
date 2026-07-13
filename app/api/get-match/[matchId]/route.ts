@@ -41,16 +41,14 @@ export async function GET(
     }
     
     console.log("Match status:", match.status);
-    console.log("Match scores:", match.scores);
+    console.log("Match scores:", {
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      homePins: match.homePins,
+      awayPins: match.awayPins
+    });
 
     console.log("Match status:", match.status);
-    console.log("Match scores:", match.scores);
-    
-    // If the match is completed but doesn't have scores, we'll leave it as is
-    // This ensures we only show the actual scores that were recorded
-    if (match.status === 'completed' && !match.scores) {
-      console.log("Match is completed but has no scores");
-    }
 
     return Response.json(
       {

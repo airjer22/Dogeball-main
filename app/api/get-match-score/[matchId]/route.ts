@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import dbConnect from "@/lib/dbConnect";
 import ScheduledMatch from "@/app/models/ScheduledMatch";
+import BracketTeam from "@/app/models/BracketTeam";
 
 export async function GET(
   request: Request,
@@ -33,14 +34,49 @@ export async function GET(
       );
     }
 
+    const legacyScores = (match as any).scores;
+    let homeScore = (match as any).homeScore || legacyScores?.homeScore || 0;
+    let awayScore = (match as any).awayScore || legacyScores?.awayScore || 0;
+    let homePins = (match as any).homePins || legacyScores?.homePins || 0;
+    let awayPins = (match as any).awayPins || legacyScores?.awayPins || 0;
+
+    // Older bracket results were stored only in BracketTeam.matchHistory.
+    // Use that history as a fallback so already-completed bracket matches can
+    // still display their score.
+    if ((match as any).matchType && homeScore === 0 && awayScore === 0) {
+      const [homeBracketTeam, awayBracketTeam] = await Promise.all([
+        BracketTeam.findOne({
+          tournamentId: (match as any).tournamentId,
+          originalTeamId: (match as any).homeTeamId._id
+        }).lean(),
+        BracketTeam.findOne({
+          tournamentId: (match as any).tournamentId,
+          originalTeamId: (match as any).awayTeamId._id
+        }).lean()
+      ]);
+
+      if (homeBracketTeam && awayBracketTeam) {
+        const history = (homeBracketTeam as any).matchHistory?.find(
+          (entry: any) =>
+            entry.round === (match as any).round &&
+            entry.opponent?.toString() === (awayBracketTeam as any)._id.toString()
+        );
+
+        if (history) {
+          homeScore = history.score;
+          awayScore = history.opponentScore;
+        }
+      }
+    }
+
     return Response.json(
       {
         success: true,
         data: {
-          homeScore: (match as any).homeScore || 0,
-          awayScore: (match as any).awayScore || 0,
-          homePins: (match as any).homePins || 0,
-          awayPins: (match as any).awayPins || 0,
+          homeScore,
+          awayScore,
+          homePins,
+          awayPins,
           homeTeam: (match as any).homeTeamId,
           awayTeam: (match as any).awayTeamId,
         },

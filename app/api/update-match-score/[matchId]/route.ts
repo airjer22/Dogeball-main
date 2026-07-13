@@ -208,12 +208,10 @@ export async function PUT(request: Request, { params }: { params: { matchId: str
     }
 
     match.status = 'completed';
-    match.scores = {
-      homeScore,
-      awayScore,
-      homePins,
-      awayPins
-    };
+    match.homeScore = homeScore;
+    match.awayScore = awayScore;
+    match.homePins = homePins;
+    match.awayPins = awayPins;
     await match.save();
 
     // Update team statistics

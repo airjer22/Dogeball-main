@@ -67,13 +67,13 @@ export function MatchDetailsModal({
           if (response.data.success) {
             const match = response.data.data;
             
-            if (match && match.scores) {
+            if (match) {
               // Use the actual scores from the database
               setMatchScores({
-                homeScore: match.scores.homeScore || 0,
-                awayScore: match.scores.awayScore || 0,
-                homePins: match.scores.homePins || 0,
-                awayPins: match.scores.awayPins || 0
+                homeScore: match.homeScore || 0,
+                awayScore: match.awayScore || 0,
+                homePins: match.homePins || 0,
+                awayPins: match.awayPins || 0
               });
             } else {
               // If no scores are found, show a message
