@@ -17,7 +17,7 @@ interface Team {
 }
 
 function calculatePoints(team: Team): number {
-  return (team.wins * 3) + team.ties;
+  return (team.wins * 3) + (team.ties * 2) + team.losses;
 }
 
 function calculateGoalDifference(team: Team): number {
