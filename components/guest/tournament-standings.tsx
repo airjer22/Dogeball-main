@@ -33,15 +33,23 @@ interface TournamentStandingsProps {
   selectedTournamentId: string;
 }
 
+function calculatePoints(team: Team): number {
+  return (team.wins * 3) + (team.ties * 2) + team.losses;
+}
+
+function calculateGoalDifference(team: Team): number {
+  return team.goalsFor - team.goalsAgainst;
+}
+
 function sortTeams(teams: Team[]): Team[] {
   return [...teams].sort((a, b) => {
-    const pointsA = (a.wins * 3) + a.ties;
-    const pointsB = (b.wins * 3) + b.ties;
+    const pointsA = calculatePoints(a);
+    const pointsB = calculatePoints(b);
     const pointsDiff = pointsB - pointsA;
     if (pointsDiff !== 0) return pointsDiff;
 
-    const goalDiffA = a.goalsFor - a.goalsAgainst;
-    const goalDiffB = b.goalsFor - b.goalsAgainst;
+    const goalDiffA = calculateGoalDifference(a);
+    const goalDiffB = calculateGoalDifference(b);
     const goalDiff = goalDiffB - goalDiffA;
     if (goalDiff !== 0) return goalDiff;
 
@@ -125,7 +133,9 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">L</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">GF</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">GA</TableHead>
+                    <TableHead className="text-blue-400 text-center text-sm md:text-base">GD</TableHead>
                     <TableHead className="text-blue-400 text-center text-sm md:text-base">Pins</TableHead>
+                    <TableHead className="text-blue-400 text-center text-sm md:text-base">Pts</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -168,13 +178,21 @@ export function TournamentStandings({ selectedTournamentId }: TournamentStanding
                         <TableCell className="text-center text-white text-sm md:text-base p-2 md:p-4">
                           {team.goalsAgainst}
                         </TableCell>
+                        <TableCell className="text-center text-sm md:text-base p-2 md:p-4 font-semibold">
+                          <span className={calculateGoalDifference(team) > 0 ? "text-green-400" : calculateGoalDifference(team) < 0 ? "text-red-400" : "text-white"}>
+                            {calculateGoalDifference(team) > 0 ? `+${calculateGoalDifference(team)}` : calculateGoalDifference(team)}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-center text-white text-sm md:text-base p-2 md:p-4">
                           {team.pins}
+                        </TableCell>
+                        <TableCell className="text-center text-white text-sm md:text-base p-2 md:p-4 font-bold">
+                          {calculatePoints(team)}
                         </TableCell>
                       </TableRow>
                       {index === 7 && teams.length > 8 && (
                         <tr>
-                          <td colSpan={9} className="p-0">
+                          <td colSpan={11} className="p-0">
                             <div className="relative">
                               <div className="absolute inset-0 flex items-center">
                                 <div className="w-full border-t-4 border-double border-green-400"></div>

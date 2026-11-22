@@ -81,7 +81,7 @@ const EmptyState = () => (
 );
 
 function calculatePoints(team: Team): number {
-  return (team.wins * 3) + team.ties;
+  return (team.wins * 3) + (team.ties * 2) + team.losses;
 }
 
 function calculateGoalDifference(team: Team): number {
@@ -368,7 +368,9 @@ export default function StandingsPage() {
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">L</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">GF</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">GA</TableHead>
+                <TableHead className="text-blue-400 text-center text-xs md:text-sm">GD</TableHead>
                 <TableHead className="text-blue-400 text-center text-xs md:text-sm">Pins</TableHead>
+                <TableHead className="text-blue-400 text-center text-xs md:text-sm">Pts</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -411,13 +413,21 @@ export default function StandingsPage() {
                     <TableCell className="text-center text-white text-xs md:text-sm">
                       {team.goalsAgainst}
                     </TableCell>
+                    <TableCell className="text-center text-xs md:text-sm font-semibold">
+                      <span className={calculateGoalDifference(team) > 0 ? "text-green-400" : calculateGoalDifference(team) < 0 ? "text-red-400" : "text-white"}>
+                        {calculateGoalDifference(team) > 0 ? `+${calculateGoalDifference(team)}` : calculateGoalDifference(team)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center text-white text-xs md:text-sm">
                       {team.pins}
+                    </TableCell>
+                    <TableCell className="text-center text-white text-xs md:text-sm font-bold">
+                      {calculatePoints(team)}
                     </TableCell>
                   </TableRow>
                   {index === 7 && displayTeams.length > 8 && (
                     <tr>
-                      <td colSpan={9} className="p-0">
+                      <td colSpan={11} className="p-0">
                         <div className="relative">
                           <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t-4 border-double border-green-400"></div>
